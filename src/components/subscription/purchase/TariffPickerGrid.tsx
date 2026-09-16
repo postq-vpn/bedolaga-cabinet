@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next';
+import { BestValueBadge, bestValueFrame } from '../BestValueBadge';
 import { useNavigate } from 'react-router';
 import { useTheme } from '../../../hooks/useTheme';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { usePromoDiscount } from '../../../hooks/usePromoDiscount';
+import { dailyPriceQuote } from './dailyPrice';
 import { getGlassColors } from '../../../utils/glassTheme';
 import { ArrowDownIcon, DevicesIcon, RestartIcon } from '@/components/icons';
 import type { Tariff, Subscription, PurchaseOptions } from '../../../types';
@@ -51,7 +53,7 @@ export function TariffPickerGrid({
   const formatPrice = (kopeks: number) =>
     kopeks === 0
       ? t('subscription.free', 'Бесплатно')
-      : `${formatAmount(kopeks / 100)} ${currencySymbol}`;
+      : `${formatAmount(kopeks / 100)}\u00A0${currencySymbol}`;
 
   return (
     <>
@@ -160,9 +162,16 @@ export function TariffPickerGrid({
               <div
                 key={tariff.id}
                 className={`bento-card-hover p-5 text-left transition-all ${
-                  isCurrentTariff ? 'bento-card-glow border-accent-500' : ''
+                  isCurrentTariff
+                    ? 'bento-card-glow border-accent-500'
+                    : tariff.is_highlighted
+                      ? // Текущий тариф важнее подсказки: две «активные» рамки
+                        // сразу не дают понять, что именно сейчас куплено.
+                        bestValueFrame(false)
+                      : ''
                 }`}
               >
+                {tariff.is_highlighted && !isCurrentTariff && <BestValueBadge className="mb-2" />}
                 <div className="mb-3 flex items-start justify-between">
                   <div>
                     <div className="text-lg font-semibold text-dark-100">{tariff.name}</div>
@@ -201,14 +210,8 @@ export function TariffPickerGrid({
                 {/* Price info */}
                 <div className="mt-3 border-t border-dark-700/50 pt-3 text-sm text-dark-400">
                   {(() => {
-                    const dailyPrice =
-                      tariff.daily_price_kopeks ?? tariff.price_per_day_kopeks ?? 0;
-                    const originalDailyPrice = tariff.original_daily_price_kopeks || 0;
-                    if (dailyPrice > 0 || originalDailyPrice > 0) {
-                      const promoDaily = applyPromoDiscount(
-                        dailyPrice,
-                        originalDailyPrice > dailyPrice ? originalDailyPrice : undefined,
-                      );
+                    const promoDaily = dailyPriceQuote(tariff, applyPromoDiscount);
+                    if (promoDaily) {
                       return (
                         <span className="flex items-center gap-2">
                           <span className="font-medium text-accent-400">
@@ -220,7 +223,7 @@ export function TariffPickerGrid({
                             </span>
                           )}
                           <span>{t('subscription.tariff.perDay')}</span>
-                          {promoDaily.percent && promoDaily.percent > 0 && (
+                          {promoDaily.percent != null && promoDaily.percent > 0 && (
                             <span
                               className={`rounded px-1.5 py-0.5 text-xs ${
                                 promoDaily.isPromoGroup
@@ -251,7 +254,7 @@ export function TariffPickerGrid({
                               {formatPrice(promoPeriod.original)}
                             </span>
                           )}
-                          {promoPeriod.percent && promoPeriod.percent > 0 && (
+                          {promoPeriod.percent != null && promoPeriod.percent > 0 && (
                             <span
                               className={`rounded px-1.5 py-0.5 text-xs ${
                                 promoPeriod.isPromoGroup

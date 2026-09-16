@@ -15,6 +15,11 @@ export interface User {
   auth_type: 'telegram' | 'email' | 'google' | 'yandex' | 'discord' | 'vk'; // Тип аутентификации
 }
 
+// Фото профиля Telegram для шапки: подписанная ссылка на прокси медиа бота или null.
+export interface UserAvatarResponse {
+  photo_url: string | null;
+}
+
 // OAuth types
 export interface OAuthProvider {
   name: string;
@@ -155,6 +160,8 @@ export interface RenewalOption {
   price_rubles: number;
   discount_percent: number;
   original_price_kopeks: number | null;
+  /** Период, отмеченный оператором как самый выгодный. */
+  is_highlighted?: boolean;
 }
 
 export interface TrafficPackage {
@@ -271,6 +278,8 @@ export interface TariffPeriod {
   extra_devices_cost_label?: string;
   base_tariff_price_kopeks?: number;
   base_tariff_price_label?: string;
+  /** Период, отмеченный оператором как самый выгодный. */
+  is_highlighted?: boolean;
 }
 
 export interface TariffServer {
@@ -282,6 +291,8 @@ export interface Tariff {
   id: number;
   name: string;
   description: string | null;
+  /** Тариф отмечен оператором как выгодный — выделяется в списке. */
+  is_highlighted?: boolean;
   tier_level: number;
   traffic_limit_gb: number;
   traffic_limit_label: string;
@@ -834,6 +845,8 @@ export interface TicketSettings {
   support_system_mode: string;
   cabinet_user_notifications_enabled: boolean;
   cabinet_admin_notifications_enabled: boolean;
+  /** Поля, закреплённые в .env: из кабинета их не изменить. */
+  env_locked?: string[];
 }
 
 // Payment method config types (admin)
@@ -877,6 +890,8 @@ export interface LinkedProvider {
   provider: string;
   linked: boolean;
   identifier: string | null;
+  /** Email that unlinking forgets: it came from this provider and no password makes it a login. */
+  forgets_email?: string | null;
 }
 
 export interface LinkedProvidersResponse {

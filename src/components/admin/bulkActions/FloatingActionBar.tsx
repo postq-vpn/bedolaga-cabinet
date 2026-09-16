@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { HIDDEN_UNDER_KEYBOARD, useVirtualKeyboard } from '@/hooks/useVirtualKeyboard';
 import { TrashIcon } from '@/components/icons';
 import { ChevronDownIcon } from './DropdownSelect';
 import { isSubscriptionLevelAction } from './actionTargets';
@@ -45,6 +46,7 @@ export function FloatingActionBar({
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const keyboardOpen = useVirtualKeyboard();
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -157,12 +159,20 @@ export function FloatingActionBar({
   ];
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[9999] flex justify-center px-4 pb-[max(5rem,calc(4.5rem+env(safe-area-inset-bottom)))]">
+    // Снизу — просвет под мобильной панелью (на 5rem бар наезжал на неё на 12px);
+    // на десктопе панели нет, там прежние 5rem. Пока открыта экранная клавиатура
+    // (фокус в фильтрах), бар прячется — иначе всплывает над клавиатурой.
+    <div
+      className={cn(
+        'fixed inset-x-0 bottom-0 z-[9999] flex justify-center px-4 pb-[var(--mobile-nav-clearance)] transition-opacity duration-200 lg:pb-20',
+        keyboardOpen && HIDDEN_UNDER_KEYBOARD,
+      )}
+    >
       <div
         ref={menuRef}
-        className="relative flex w-full max-w-2xl items-center gap-3 rounded-2xl border border-dark-700/60 bg-dark-800/80 px-5 py-3 shadow-2xl backdrop-blur-xl"
+        className="relative flex w-full max-w-2xl items-center gap-2 rounded-2xl border border-dark-700/60 bg-dark-800/80 px-3 py-3 shadow-2xl backdrop-blur-xl sm:gap-3 sm:px-5"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {selectedUserCount > 0 && (
             <div className="flex items-center gap-1.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-500/20 text-sm font-bold text-accent-400">
@@ -190,10 +200,10 @@ export function FloatingActionBar({
 
         {isMultiTariff && totalVisibleSubscriptionCount > 0 && (
           <>
-            <div className="mx-1 h-6 w-px bg-dark-700" />
+            <div className="mx-1 hidden h-6 w-px bg-dark-700 sm:block" />
             <button
               onClick={onToggleAllSubscriptions}
-              className="shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-dark-300 transition-colors hover:bg-dark-700 hover:text-dark-200"
+              className="min-w-0 rounded-lg px-1.5 py-1.5 text-left text-[11px] font-medium leading-tight text-dark-300 transition-colors hover:bg-dark-700 hover:text-dark-200 sm:px-2.5"
             >
               {selectedSubscriptionCount === totalVisibleSubscriptionCount &&
               selectedSubscriptionCount > 0
@@ -203,19 +213,19 @@ export function FloatingActionBar({
           </>
         )}
 
-        <div className="mx-2 h-6 w-px bg-dark-700" />
+        <div className="mx-2 hidden h-6 w-px bg-dark-700 sm:block" />
 
-        <div className="relative ml-auto">
+        <div className="relative ml-auto shrink-0">
           <button
             onClick={() => setOpen(!open)}
-            className="flex items-center gap-2 rounded-xl bg-accent-500 px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-600"
+            className="flex items-center gap-2 rounded-xl bg-accent-500 px-3 py-2 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-600 sm:px-4"
           >
             {t('common.actions')}
             <ChevronDownIcon />
           </button>
 
           {open && (
-            <div className="absolute bottom-full right-0 mb-2 w-64 overflow-hidden rounded-xl border border-dark-700 bg-dark-800 py-1.5 shadow-2xl">
+            <div className="absolute bottom-full right-0 mb-2 w-64 max-w-[calc(100vw-3rem)] overflow-hidden rounded-xl border border-dark-700 bg-dark-800 py-1.5 shadow-2xl">
               {isMultiTariff && (
                 <div className="border-b border-dark-700/50 px-4 py-1.5">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-dark-500">

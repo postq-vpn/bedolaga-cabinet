@@ -23,10 +23,12 @@ import OAuthProviderIcon from '../components/OAuthProviderIcon';
 import { saveOAuthState } from '../utils/oauth';
 import { getPendingReferralCode } from '../utils/referral';
 import { UsersIcon, EmailIcon, RefreshIcon, ChevronDownIcon } from '@/components/icons';
+import { CheckEmailCard } from '@/components/auth/CheckEmailCard';
 import SiteHeader from '../components/marketing/SiteHeader';
 import SiteFooter from '../components/marketing/SiteFooter';
-import { setFavicon, letterFaviconDataUri, roundedFaviconDataUri } from '../utils/favicon';
 import LegalConsent from '../components/LegalConsent';
+import LegalConsentGate from '../components/LegalConsentGate';
+import { useLegalConsentGate } from '../hooks/useLegalConsentGate';
 import { infoApi } from '../api/info';
 import type { LegalConsentConfig } from '../types';
 import { safeLocal, safeSession } from '../utils/safeStorage';
@@ -80,61 +82,10 @@ export default function Login() {
     staleTime: 5 * 60 * 1000,
     retry: false,
   });
-  const consentDocuments = useMemo(() => legalConsent?.documents ?? [], [legalConsent]);
-  const [acceptedDocuments, setAcceptedDocuments] = useState<Record<string, boolean>>({});
   // Telegram-вход происходит сам собой, поэтому чекбоксы показываем только когда
   // бэк ответил 428: пользователь новый и без согласия аккаунт не создастся.
-  // Замыкание помнит, какой именно вход повторить после простановки галочек.
-  const [pendingConsentRetry, setPendingConsentRetry] = useState<
-    ((accepted: string[]) => Promise<void>) | null
-  >(null);
-
-  useEffect(() => {
-    if (!legalConsent?.prechecked || consentDocuments.length === 0) return;
-    setAcceptedDocuments((prev) => {
-      const next = { ...prev };
-      for (const document of consentDocuments) {
-        if (next[document] === undefined) next[document] = true;
-      }
-      return next;
-    });
-  }, [legalConsent?.prechecked, consentDocuments]);
-
-  const acceptedDocumentKeys = useMemo(
-    () => consentDocuments.filter((document) => acceptedDocuments[document]),
-    [consentDocuments, acceptedDocuments],
-  );
-  const allDocumentsAccepted =
-    consentDocuments.length === 0 || acceptedDocumentKeys.length === consentDocuments.length;
-
-  const toggleDocument = useCallback((document: string, value: boolean) => {
-    setAcceptedDocuments((prev) => ({ ...prev, [document]: value }));
-  }, []);
-
-  // 428 = бэк требует согласие. Запоминаем, что повторить, и рисуем чекбоксы.
-  const captureConsentRequirement = useCallback(
-    (err: unknown, retry: (accepted: string[]) => Promise<void>): boolean => {
-      const error = err as { response?: { status?: number; data?: { detail?: unknown } } };
-      if (error.response?.status !== 428) return false;
-
-      const detail = error.response?.data?.detail as
-        | { documents?: string[]; prechecked?: boolean }
-        | undefined;
-      if (detail?.documents?.length) {
-        const documents = detail.documents;
-        setAcceptedDocuments((prev) => {
-          const next = { ...prev };
-          for (const document of documents) {
-            if (next[document] === undefined) next[document] = Boolean(detail.prechecked);
-          }
-          return next;
-        });
-      }
-      setPendingConsentRetry(() => retry);
-      return true;
-    },
-    [],
-  );
+  // Гейт помнит, какой именно вход повторить после простановки галочек.
+  const consent = useLegalConsentGate(legalConsent);
 
   // Telegram safe area insets
   const { safeAreaInset, contentSafeAreaInset } = useTelegramSDK();
@@ -224,30 +175,6 @@ export default function Login() {
   const appLogo = branding?.logo_letter || import.meta.env.VITE_APP_LOGO || 'V';
   const logoUrl = branding ? brandingApi.getLogoUrl(branding) : null;
 
-  // Set document title
-  useEffect(() => {
-    document.title = appName || 'VPN';
-  }, [appName]);
-
-  // The login page is public/unauthenticated, so it never goes through the
-  // auth-gated useBranding hook — without this it kept the static index.html
-  // fallback favicon instead of the real branding logo (same pattern as
-  // QuickPurchase.tsx's standalone landing page).
-  useEffect(() => {
-    if (!branding) return;
-    if (!logoUrl) {
-      setFavicon(letterFaviconDataUri(appLogo));
-      return;
-    }
-    let cancelled = false;
-    roundedFaviconDataUri(logoUrl).then((rounded) => {
-      if (!cancelled) setFavicon(rounded || logoUrl);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [branding, logoUrl, appLogo]);
-
   useEffect(() => {
     if (isAuthenticated) {
       navigate(getReturnUrl(), { replace: true });
@@ -282,7 +209,7 @@ export default function Login() {
             console.warn(`Telegram auth attempt ${attempt + 1} failed:`, status, detail);
 
           // Не ошибка входа, а недостающее согласие: показываем чекбоксы.
-          const needsConsent = captureConsentRequirement(err, async (accepted) => {
+          const needsConsent = consent.capture(err, async (accepted) => {
             await loginWithTelegram(initData, accepted);
             navigate(getReturnUrl(), { replace: true });
           });
@@ -305,7 +232,7 @@ export default function Login() {
     };
 
     tryTelegramAuth();
-  }, [isAuthInitializing, loginWithTelegram, navigate, t, getReturnUrl, captureConsentRequirement]);
+  }, [isAuthInitializing, loginWithTelegram, navigate, t, getReturnUrl, consent.capture]);
 
   const handleRetryTelegramAuth = () => {
     // Clear ALL cached auth state to prevent stale token/initData loops
@@ -358,7 +285,7 @@ export default function Login() {
           password,
           firstName || undefined,
           referralCode || undefined,
-          acceptedDocumentKeys,
+          consent.acceptedKeys,
         );
         // Show "check your email" screen
         setRegisteredEmail(result.email);
@@ -370,7 +297,7 @@ export default function Login() {
 
       // Конфиг чекбоксов мог протухнуть (админ включил гейт между загрузкой страницы
       // и отправкой формы) — показываем недостающие галочки вместо сырой ошибки.
-      const needsConsent = captureConsentRequirement(err, async (accepted) => {
+      const needsConsent = consent.capture(err, async (accepted) => {
         const retried = await registerWithEmail(
           email,
           password,
@@ -378,7 +305,6 @@ export default function Login() {
           referralCode || undefined,
           accepted,
         );
-        setPendingConsentRetry(null);
         setRegisteredEmail(retried.email);
       });
       if (needsConsent) {
@@ -468,83 +394,26 @@ export default function Login() {
             </div>
           )}
 
-          {/* Экран согласия: бэк ответил 428 на автоматический Telegram-вход */}
-          {pendingConsentRetry ? (
-            <div className="card mkt-glass-card">
-              <h2 className="mb-2 text-lg font-bold text-dark-50">
-                {t('auth.legalConsentTitle', 'Ещё один шаг')}
-              </h2>
-              <p className="mb-4 text-sm text-dark-400">
-                {t(
-                  'auth.legalConsentSubtitle',
-                  'Чтобы создать аккаунт, подтвердите, что ознакомились с документами.',
-                )}
-              </p>
-
-              <LegalConsent
-                documents={consentDocuments}
-                accepted={acceptedDocuments}
-                onChange={toggleDocument}
-                disabled={isLoading}
-              />
-
-              {error && (
-                <p className="mt-4 text-sm text-error-400" role="alert">
-                  {error}
-                </p>
-              )}
-
-              <button
-                type="button"
-                className="btn-primary mkt-btn-primary mt-5 w-full"
-                disabled={!allDocumentsAccepted || isLoading}
-                onClick={async () => {
-                  setError('');
-                  setIsLoading(true);
-                  try {
-                    await pendingConsentRetry(acceptedDocumentKeys);
-                    setPendingConsentRetry(null);
-                  } catch (err) {
-                    setError(getApiErrorMessage(err, t('common.error')));
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
-              >
-                {isLoading
-                  ? t('common.loading', 'Загрузка...')
-                  : t('auth.legalConsentContinue', 'Продолжить')}
-              </button>
-            </div>
+          {/* Экран согласия: бэк ответил 428 на автоматический Telegram-вход или регистрацию */}
+          {consent.pending ? (
+            <LegalConsentGate gate={consent} className="mkt-glass-card" />
           ) : /* Check Email Screen */
           registeredEmail ? (
-            <div className="card mkt-glass-card text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-success-500/20">
-                <EmailIcon className="h-7 w-7 text-success-400" />
-              </div>
-              <h2 className="mb-2 text-lg font-bold text-dark-50">
-                {t('auth.checkEmail', 'Check your email')}
-              </h2>
-              <p className="mb-3 text-sm text-dark-400">
-                {t('auth.verificationSent', 'We sent a verification link to:')}
-              </p>
-              <p className="mb-4 text-sm font-medium text-accent-400">{registeredEmail}</p>
-              <p className="mb-5 text-xs text-dark-500">
-                {t(
-                  'auth.clickLinkToVerify',
-                  'Click the link in the email to verify your account and log in.',
-                )}
-              </p>
-              <button
-                onClick={() => {
-                  setRegisteredEmail(null);
-                  setAuthMode('login');
-                }}
-                className="btn-secondary mkt-btn-secondary w-full"
-              >
-                {t('auth.backToLogin', 'Back to login')}
-              </button>
-            </div>
+            <CheckEmailCard
+              email={registeredEmail}
+              className="mkt-glass-card"
+              onBackToLogin={() => {
+                setRegisteredEmail(null);
+                setAuthMode('login');
+              }}
+              onChangeEmail={() => {
+                // Адрес остаётся в поле: чаще всего его не меняют, а правят опечатку.
+                setEmail(registeredEmail);
+                setRegisteredEmail(null);
+                setAuthMode('register');
+                setShowEmailForm(true);
+              }}
+            />
           ) : (
             /* Main auth card */
             <div className="card mkt-glass-card">
@@ -660,6 +529,11 @@ export default function Login() {
                                   'auth.passwordResetSent',
                                   'If an account exists with this email, we sent password reset instructions.',
                                 )}
+                              </p>
+                              {/* Тот же тупик, что и после регистрации: письма нет,
+                                  и человек не знает, где смотреть. */}
+                              <p className="rounded-xl border border-dark-700 bg-dark-800/60 p-3 text-left text-xs leading-relaxed text-dark-400">
+                                {t('auth.spamHint')}
                               </p>
                               <button
                                 type="button"
@@ -838,9 +712,9 @@ export default function Login() {
 
                               {authMode === 'register' && (
                                 <LegalConsent
-                                  documents={consentDocuments}
-                                  accepted={acceptedDocuments}
-                                  onChange={toggleDocument}
+                                  documents={consent.documents}
+                                  accepted={consent.accepted}
+                                  onChange={consent.toggle}
                                   disabled={isLoading}
                                   className="pt-1"
                                 />
@@ -849,7 +723,7 @@ export default function Login() {
                               <button
                                 type="submit"
                                 disabled={
-                                  isLoading || (authMode === 'register' && !allDocumentsAccepted)
+                                  isLoading || (authMode === 'register' && !consent.allAccepted)
                                 }
                                 className="btn-primary mkt-btn-primary w-full py-2.5"
                               >

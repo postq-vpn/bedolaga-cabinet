@@ -1,7 +1,10 @@
 import {
   PiArrowsInSimple,
+  PiReceipt,
+  PiSortAscending,
   PiArrowsOutSimple,
   PiCode,
+  PiMapPin,
   PiMapTrifold,
   PiNetwork,
   PiSlidersHorizontal,
@@ -18,6 +21,7 @@ import {
   PiLightning,
   PiRobot,
   PiBroadcast,
+  PiCellSignalFull,
   PiAppWindow,
   PiCalendarDots,
   PiCreditCard,
@@ -37,9 +41,11 @@ import {
   PiEye,
   PiFunnel,
   PiDotsSix,
+  PiDotsThree,
   PiDotsSixVertical,
   PiHeartbeat,
   PiClockCounterClockwise,
+  PiScan,
   PiImage,
   PiInfinity,
   PiLink,
@@ -92,6 +98,8 @@ import {
   PiMemory,
   PiPulse,
 } from 'react-icons/pi';
+// У Phosphor нет радара — единственная иконка из Lucide, для раздела BSCHEKER.
+import { LuRadar } from 'react-icons/lu';
 
 import { cn } from '@/lib/utils';
 
@@ -301,6 +309,11 @@ export const FilterIcon = ({ className }: IconProps) => (
   <PiFunnel className={cn('h-5 w-5', className)} />
 );
 
+/** «Ещё действия» — меню ⋯ в шапках карточек. */
+export const MoreIcon = ({ className }: IconProps) => (
+  <PiDotsThree className={cn('h-5 w-5', className)} />
+);
+
 export const GripIcon = ({ className }: IconProps) => (
   <PiDotsSix className={cn('h-5 w-5', className)} />
 );
@@ -315,6 +328,9 @@ export const HealthIcon = ({ className }: IconProps) => (
 
 export const HistoryIcon = ({ className }: IconProps) => (
   <PiClockCounterClockwise className={cn('h-5 w-5', className)} />
+);
+export const ScanIcon = ({ className }: IconProps) => (
+  <PiScan className={cn('h-5 w-5', className)} />
 );
 
 export const LifebuoyIcon = ({ className }: IconProps) => (
@@ -508,3 +524,27 @@ export const XCloseIcon = ({ className }: IconProps) => (
 );
 
 export const XMarkIcon = ({ className }: IconProps) => <PiX className={cn('h-5 w-5', className)} />;
+
+export const CellSignalIcon = ({ className }: IconProps) => (
+  <PiCellSignalFull className={cn('h-5 w-5', className)} />
+);
+
+/** Раздел BSCHEKER: радар. */
+export const RadarIcon = ({ className }: IconProps) => (
+  <LuRadar className={cn('h-5 w-5', className)} />
+);
+
+/** GEO-РФ — проверка из городов. */
+export const MapPinIcon = ({ className }: IconProps) => (
+  <PiMapPin className={cn('h-5 w-5', className)} />
+);
+
+/** Сортировка списка — кнопка-иконка рядом с поиском. */
+export const SortAscendingIcon = ({ className }: IconProps) => (
+  <PiSortAscending className={cn('h-5 w-5', className)} />
+);
+
+/** Потрачено за всё время — плитка карточки пользователя. */
+export const ReceiptIcon = ({ className }: IconProps) => (
+  <PiReceipt className={cn('h-5 w-5', className)} />
+);

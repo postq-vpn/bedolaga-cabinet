@@ -58,7 +58,27 @@ i18n.use(initReactI18next).init({
 // Load the active language + fallback on startup
 const activeLng = i18n.language?.split('-')[0] || FALLBACK_LNG;
 const langsToLoad = [FALLBACK_LNG, ...(activeLng !== FALLBACK_LNG ? [activeLng] : [])];
-Promise.all(langsToLoad.map(loadLanguage));
+
+// Сколько ждать словари, прежде чем рисовать без них. Белый экран хуже
+// непереведённого текста: если чанк локали не приехал (сеть отвалилась, прокси
+// отдал 502), приложение обязано появиться.
+const READY_TIMEOUT_MS = 5000;
+
+/**
+ * Резолвится, когда словари активного языка зарегистрированы в i18next.
+ *
+ * Локали лежат в отдельных ленивых чанках (~75 КБ gzip), а `useSuspense`
+ * выключен — значит react-i18next не приостановит отрисовку и `t('auth.login')`
+ * вернёт сам ключ. С прогретым кэшем чанк приходил раньше первой отрисовки и
+ * этого не было видно; на холодном интерфейс успевал нарисоваться с сырыми
+ * ключами. Точка входа ждёт этот промис перед `createRoot().render()`.
+ *
+ * Никогда не реджектится и не висит дольше READY_TIMEOUT_MS.
+ */
+export const i18nReady: Promise<void> = Promise.race([
+  Promise.all(langsToLoad.map(loadLanguage)).then(() => undefined),
+  new Promise<void>((resolve) => setTimeout(resolve, READY_TIMEOUT_MS)),
+]).catch(() => undefined);
 
 // Keep <html lang> + dir in sync with i18n so screen readers pronounce
 // content correctly, browsers don't offer to translate it, and RTL
