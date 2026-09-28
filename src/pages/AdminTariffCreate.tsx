@@ -184,7 +184,10 @@ export default function AdminTariffCreate() {
       device_limit: toNumber(deviceLimit, 1),
       device_price_kopeks:
         toNumber(devicePriceKopeks) >= 0 ? toNumber(devicePriceKopeks) : undefined,
-      max_device_limit: toNumber(maxDeviceLimit) > 0 ? toNumber(maxDeviceLimit) : undefined,
+      // 0 = без лимита докупки. На правке 0 уходит на сервер и снимает лимит
+      // (пустое поле означало бы «не трогать»); на создании лимита ещё нет.
+      max_device_limit:
+        toNumber(maxDeviceLimit) > 0 ? toNumber(maxDeviceLimit) : isEdit ? 0 : undefined,
       tier_level: toNumber(tierLevel, 1),
       period_prices: isDaily ? [] : periodPrices.filter((p) => p.price_kopeks >= 0),
       // Выделение необязательно. На правке 0 — «снять выделение» (пустое поле
