@@ -51,8 +51,6 @@ i18n.use(initReactI18next).init({
   react: {
     useSuspense: false,
   },
-
-  showSupportNotice: false,
 });
 
 // Load the active language + fallback on startup
