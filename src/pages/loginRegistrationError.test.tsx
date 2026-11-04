@@ -101,7 +101,8 @@ it('displays a delayed logo with unchanged cached branding without user interact
     finish();
     await loading;
   });
-  const image = await screen.findByRole('img', { name: 'Example Cabinet' });
+  // Наша страница входа показывает логотип в шапке и в подвале — проверяем шапку.
+  const [image] = await screen.findAllByRole('img', { name: 'Example Cabinet' });
   expect(image.getAttribute('src')).toBe('blob:example-logo');
   fireEvent.load(image);
   expect(image.className).toContain('opacity-100');
@@ -159,7 +160,8 @@ it('shows the successful logo retry after the cached preload failed', async () =
     if (!logo.cached) throw new Error('Missing test branding');
     finishBranding(logo.cached);
   });
-  const image = await screen.findByRole('img', { name: 'Retry Cabinet' });
+  // Наша страница входа показывает логотип в шапке и в подвале — проверяем шапку.
+  const [image] = await screen.findAllByRole('img', { name: 'Retry Cabinet' });
   expect(image.getAttribute('src')).toBe('blob:retried-logo');
 });
 
