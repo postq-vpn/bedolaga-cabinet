@@ -15,8 +15,9 @@ interface TrialOfferCardProps {
 }
 
 /**
- * Trial offer — postq design, Figma "Пробная подписка": a tinted card with the
- * trial terms and the phone render on the right, two actions under it
+ * Trial offer — postq design, Figma "Пробная подписка": on phones and tablets
+ * the terms in the middle of a square card ringed by app icons; on desktop the
+ * terms on the left and the phone render on the right. Two actions under it
  * (activate / buy a subscription).
  */
 export default function TrialOfferCard({
@@ -32,50 +33,97 @@ export default function TrialOfferCard({
   const canAfford = balanceKopeks >= trialInfo.price_kopeks;
   const price = `${formatAmount(trialInfo.price_rubles)}\u00A0${currencySymbol}`;
 
+  // The card title with its last two words kept on one line.
+  const titleWords = t('postq.dashboard.trialTitle').split(' ');
+  const titleHead = titleWords.slice(0, -2).join(' ');
+  const titleTail = titleWords.slice(-2).join(' ');
+
+  const terms = [
+    {
+      label: t('postq.dashboard.trialDuration'),
+      value: t('subscription.days', { count: trialInfo.duration_days }),
+    },
+    {
+      label: t('postq.dashboard.traffic'),
+      value:
+        trialInfo.traffic_limit_gb > 0
+          ? formatTraffic(trialInfo.traffic_limit_gb)
+          : t('postq.dashboard.trafficUnlimited'),
+    },
+  ];
+
   const activate = () => {
     if (!activateTrialMutation.isPending) activateTrialMutation.mutate();
   };
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rd-trial-card relative overflow-hidden rounded-[var(--rd-radius-md)] p-6 sm:min-h-[300px] sm:p-8 lg:min-h-[360px] lg:p-12">
-        <div className="relative z-10 flex flex-col gap-10 sm:max-w-[52%] lg:max-w-[56%] lg:gap-24">
+      {/* Phones and tablets: a square card ringed by the app icons. */}
+      <section className="rd-trial-card relative flex aspect-square items-center justify-center overflow-hidden rounded-[var(--rd-radius-md)] p-6 lg:hidden">
+        {/* The icons ring as one picture: the card is square like the artwork
+            and shows it whole; the terms sit in its empty middle. Phones: a bit
+            larger than the card so the middle has room for the text — the side
+            icons peek in from the edges. Lazy: not fetched on desktop, where
+            this card is hidden. */}
+        <img
+          src="/redesign/cabinet/trial/ring-1200.webp"
+          srcSet="/redesign/cabinet/trial/ring-1200.webp 1200w, /redesign/cabinet/trial/ring-2400.webp 2400w"
+          sizes="(min-width: 640px) 100vw, 130vw"
+          alt=""
+          aria-hidden
+          draggable={false}
+          loading="lazy"
+          decoding="async"
+          className="pointer-events-none absolute top-1/2 left-1/2 aspect-square w-[130%] max-w-none -translate-x-1/2 -translate-y-1/2 select-none sm:w-full"
+        />
+        <div className="relative z-10 flex max-w-[300px] flex-col items-center gap-6 text-center sm:max-w-[60%] sm:gap-8">
+          {/* The last two words stay together («абсолютно бесплатно!»); under
+              380px there's no room for them at 28px, so 24px there. */}
+          <h2 className="text-[24px] font-bold leading-[32px] text-[var(--rd-heading)] min-[380px]:text-[28px] min-[380px]:leading-[36px] sm:text-[32px] sm:leading-[40px]">
+            {titleHead} <span className="whitespace-nowrap">{titleTail}</span>
+          </h2>
+          <dl className="grid grid-cols-2 gap-6 sm:gap-8">
+            {terms.map((m) => (
+              <div key={m.label} className="flex min-w-0 flex-col items-center gap-2">
+                <dt className="whitespace-nowrap text-[16px] leading-[20px] text-[var(--rd-caption)] sm:text-[20px] sm:leading-[24px]">
+                  {m.label}
+                </dt>
+                <dd className="whitespace-nowrap text-[32px] font-bold leading-[40px] text-[var(--rd-heading)] sm:text-[40px] sm:leading-[48px]">
+                  {m.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* Desktop: the terms on the left, the phone with the app icons on the
+          right (the card's edge crops its bottom). */}
+      <section className="rd-trial-card relative hidden min-h-[360px] overflow-hidden rounded-[var(--rd-radius-md)] p-12 lg:block">
+        <div className="relative z-10 flex max-w-[56%] flex-col gap-24">
           <h2 className="rd-h5 text-[var(--rd-heading)]">{t('postq.dashboard.trialTitle')}</h2>
-          <div className="grid max-w-[44%] grid-cols-1 gap-6 sm:max-w-none sm:grid-cols-2">
-            <Metric
-              label={t('postq.dashboard.trialDuration')}
-              value={t('subscription.days', { count: trialInfo.duration_days })}
-            />
-            <Metric
-              label={t('postq.dashboard.traffic')}
-              value={
-                trialInfo.traffic_limit_gb > 0
-                  ? formatTraffic(trialInfo.traffic_limit_gb)
-                  : t('postq.dashboard.trafficUnlimited')
-              }
-            />
+          <div className="grid grid-cols-2 gap-6">
+            {terms.map((m) => (
+              <Metric key={m.label} label={m.label} value={m.value} />
+            ))}
           </div>
         </div>
-        {/* Phone with the app icons (Figma "Пробная подписка"): always on the
-            right, the card's edge crops its bottom. On phones the terms stack in
-            a column on the left and the phone peeks out of the bottom corner
-            (it used to sit under the terms, half cut off mid-icons). */}
         <picture>
           <source
             type="image/avif"
             srcSet="/redesign/cabinet/trial/phone-480.avif 480w, /redesign/cabinet/trial/phone-960.avif 960w"
-            sizes="(min-width: 1024px) 420px, (min-width: 640px) 44vw, 200px"
+            sizes="420px"
           />
           <img
             src="/redesign/cabinet/trial/phone-480.webp"
             srcSet="/redesign/cabinet/trial/phone-480.webp 480w, /redesign/cabinet/trial/phone-960.webp 960w"
-            sizes="(min-width: 1024px) 420px, (min-width: 640px) 44vw, 200px"
+            sizes="420px"
             alt=""
             aria-hidden
             draggable={false}
             loading="lazy"
             decoding="async"
-            className="pointer-events-none absolute -bottom-10 -right-2 block w-[200px] select-none sm:bottom-auto sm:top-3 sm:right-[2%] sm:w-[44%] sm:max-w-[420px]"
+            className="pointer-events-none absolute top-3 right-[2%] w-[44%] max-w-[420px] select-none"
           />
         </picture>
       </section>
