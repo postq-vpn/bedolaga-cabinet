@@ -126,16 +126,21 @@ async function renderGift() {
 
 /** Карточка тарифа — радиокнопка вокруг названия. */
 function tariffCard(name: string): HTMLElement {
-  const title = screen.getByText(name);
-  const card = title.closest('button');
+  // The name also appears in the «Ваш выбор» summary: take the one inside a button.
+  const card = screen
+    .getAllByText(name)
+    .map((el) => el.closest('button'))
+    .find((el): el is HTMLButtonElement => el !== null);
   if (!card) throw new Error(`не нашёл карточку тарифа ${name}`);
   return card;
 }
 
 /** Карточка периода — кнопка вокруг подписи периода. */
 function periodCard(label: string): HTMLElement {
-  const title = screen.getByText(label);
-  const card = title.closest('button');
+  const card = screen
+    .getAllByText(label)
+    .map((el) => el.closest('button'))
+    .find((el): el is HTMLButtonElement => el !== null);
   if (!card) throw new Error(`не нашёл карточку периода ${label}`);
   return card;
 }
@@ -161,41 +166,19 @@ describe('подарок: выбранные по умолчанию тариф 
       tariff({ id: 1, name: 'Базовый', periods: [period(30), period(180, true)] }),
     ]);
     await renderGift();
-    await screen.findByText('1 месяц');
+    await screen.findAllByText('1 месяц');
 
-    await waitFor(() => expect(periodCard('6 месяцев').getAttribute('aria-pressed')).toBe('true'));
-    expect(periodCard('1 месяц').getAttribute('aria-pressed')).toBe('false');
+    await waitFor(() => expect(periodCard('6 месяцев').getAttribute('aria-checked')).toBe('true'));
+    expect(periodCard('1 месяц').getAttribute('aria-checked')).toBe('false');
   });
 
-  it('выгодный период подписан «Выгодно», остальные — нет', async () => {
+  it('надпись «Выгодно» не выводится — выгодный вариант просто выбран сразу', async () => {
     state.config = config([
       tariff({ id: 1, name: 'Базовый', periods: [period(30), period(180, true)] }),
-    ]);
-    await renderGift();
-    await screen.findByText('1 месяц');
-
-    const badges = screen.getAllByText(ru('subscription.bestValue'));
-    expect(badges).toHaveLength(1);
-    expect(periodCard('6 месяцев').contains(badges[0])).toBe(true);
-  });
-
-  it('выгодный тариф подписан «Выгодно»', async () => {
-    state.config = config([
-      tariff({ id: 1, name: 'Базовый', periods: [period(30)] }),
       tariff({ id: 2, name: 'Годовой', is_highlighted: true, periods: [period(30)] }),
     ]);
     await renderGift();
     await screen.findByText('Годовой');
-
-    const badges = screen.getAllByText(ru('subscription.bestValue'));
-    expect(badges).toHaveLength(1);
-    expect(tariffCard('Годовой').contains(badges[0])).toBe(true);
-  });
-
-  it('без отметок ничего не подписывает', async () => {
-    state.config = config([tariff({ id: 1, name: 'Базовый', periods: [period(30), period(180)] })]);
-    await renderGift();
-    await screen.findByText('1 месяц');
 
     expect(screen.queryByText(ru('subscription.bestValue'))).toBeNull();
   });
@@ -207,12 +190,12 @@ describe('подарок: выбранные по умолчанию тариф 
     ]);
     await renderGift();
     await screen.findByText('Премиум');
-    expect(periodCard('1 месяц').getAttribute('aria-pressed')).toBe('true');
+    expect(periodCard('1 месяц').getAttribute('aria-checked')).toBe('true');
 
     fireEvent.click(tariffCard('Премиум'));
 
-    expect(periodCard('6 месяцев').getAttribute('aria-pressed')).toBe('true');
-    expect(periodCard('1 месяц').getAttribute('aria-pressed')).toBe('false');
+    expect(periodCard('6 месяцев').getAttribute('aria-checked')).toBe('true');
+    expect(periodCard('1 месяц').getAttribute('aria-checked')).toBe('false');
   });
 
   it('свой выбор периода не перебивается', async () => {
@@ -225,8 +208,8 @@ describe('подарок: выбранные по умолчанию тариф 
 
     fireEvent.click(periodCard('1 месяц'));
 
-    expect(periodCard('1 месяц').getAttribute('aria-pressed')).toBe('true');
-    expect(periodCard('6 месяцев').getAttribute('aria-pressed')).toBe('false');
+    expect(periodCard('1 месяц').getAttribute('aria-checked')).toBe('true');
+    expect(periodCard('6 месяцев').getAttribute('aria-checked')).toBe('false');
   });
 
   it('без отметок остаётся первый тариф и первый период', async () => {
@@ -238,6 +221,6 @@ describe('подарок: выбранные по умолчанию тариф 
     await screen.findByText('Базовый');
 
     expect(tariffCard('Базовый').getAttribute('aria-checked')).toBe('true');
-    expect(periodCard('1 месяц').getAttribute('aria-pressed')).toBe('true');
+    expect(periodCard('1 месяц').getAttribute('aria-checked')).toBe('true');
   });
 });

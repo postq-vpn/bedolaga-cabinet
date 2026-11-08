@@ -1,3 +1,4 @@
+import { usePostqDesign } from '@/design/postqDesign';
 import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { BackgroundRenderer } from './BackgroundRenderer';
@@ -26,8 +27,11 @@ export function useBackgroundConsumer() {
 }
 
 export function BackgroundHost() {
-  const active = useBackgroundConsumers((s) => s.count > 0);
-  const [mounted, setMounted] = useState(active);
+  // postq: the cabinet frames have a flat page background (--rd-page), so the
+  // operator's animated background isn't drawn under the redesign.
+  const postq = usePostqDesign();
+  const active = useBackgroundConsumers((s) => s.count > 0) && !postq;
+  const [mounted, setMounted] = useState<boolean>(active);
 
   useEffect(() => {
     if (active) {

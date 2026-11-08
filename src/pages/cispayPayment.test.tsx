@@ -101,7 +101,7 @@ it.each([
     </QueryClientProvider>,
   );
   expect(await screen.findByRole('heading', { name: 'CisPay' })).toBeTruthy();
-  if (label) fireEvent.click(screen.getByRole('button', { name: label }));
+  if (label) fireEvent.click(screen.getByRole('radio', { name: label }));
   fireEvent.click(screen.getByRole('button', { name: /balance\.topUp|balance\.pay/i }));
   await waitFor(() => expect(createTopUp).toHaveBeenCalledWith(50000, 'cispay', option));
 });
@@ -142,7 +142,7 @@ it.each([
     </QueryClientProvider>,
   );
   await screen.findByRole('heading', { name: 'CisPay' });
-  if (option === 'card') fireEvent.click(screen.getByRole('button', { name: 'Карта' }));
+  if (option === 'card') fireEvent.click(screen.getByRole('radio', { name: 'Карта' }));
   fireEvent.click(screen.getByRole('button', { name: /balance\.topUp|balance\.pay/i }));
   if (blocked) {
     expect(await screen.findByText('balance.errors.amountRange')).toBeTruthy();

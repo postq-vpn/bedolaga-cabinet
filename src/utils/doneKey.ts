@@ -85,8 +85,16 @@ export function installDoneKey({ hideKeyboard, root = document }: DoneKeyOptions
   const onKeyDown = (event: KeyboardEvent): void => {
     const field = event.target;
     if (!isSingleLineTextEntry(field) || !shouldDismissOnEnter(event)) return;
-    field.blur();
-    hideKeyboard();
+    const dismiss = () => {
+      field.blur();
+      hideKeyboard();
+    };
+    // Inside a form Enter also submits it (implicit submission) — but only if
+    // the field still has focus when the keydown's default action runs.
+    // Blurring right here swallowed the submit on phones (promo code, login…),
+    // so a form's field lets go after it.
+    if (field.form) setTimeout(dismiss, 0);
+    else dismiss();
   };
   root.addEventListener('keydown', onKeyDown);
 

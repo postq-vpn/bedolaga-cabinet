@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import packageJson from './package.json' with { type: 'json' };
 import { brandingHtml } from './vite-plugins/brandingHtml.ts';
+import { localeSplit } from './vite-plugins/localeSplit.ts';
 
 // Vendor-чанки: [имя, какие модули в него идут]. Порядок = приоритет группы.
 // Rolldown по умолчанию забирает в группу и все зависимости её модулей, поэтому
@@ -41,6 +42,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
+      localeSplit(path.resolve(import.meta.dirname, 'src/locales')),
       brandingHtml({
         name: env.VITE_APP_NAME ?? '',
         apiUrl: env.VITE_API_URL ?? '',

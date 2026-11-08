@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/platform/confirmDialog';
 import type {
   PlatformContext,
   PlatformCapabilities,
@@ -94,24 +95,19 @@ function createDialogController(): DialogController {
       });
     },
 
-    confirm(message: string, _title?: string): Promise<boolean> {
-      return new Promise((resolve) => {
-        resolve(window.confirm(message));
-      });
+    confirm(message: string, title?: string): Promise<boolean> {
+      // postq: a styled dialog (ConfirmDialogHost) instead of window.confirm.
+      return confirmDialog({ message, title });
     },
 
     popup(options: PopupOptions): Promise<string | null> {
-      return new Promise((resolve) => {
-        // Simple confirm fallback
-        const confirmed = window.confirm(options.message);
-        if (confirmed && options.buttons?.length) {
-          // Return first non-cancel button id
-          const button = options.buttons.find((b) => b.type !== 'cancel' && b.type !== 'close');
-          resolve(button?.id ?? 'ok');
-        } else {
-          resolve(null);
-        }
-      });
+      const button = options.buttons?.find((b) => b.type !== 'cancel' && b.type !== 'close');
+      return confirmDialog({
+        message: options.message,
+        title: options.title,
+        confirmLabel: button?.text,
+        destructive: button?.type === 'destructive',
+      }).then((confirmed) => (confirmed ? (button?.id ?? 'ok') : null));
     },
   };
 }

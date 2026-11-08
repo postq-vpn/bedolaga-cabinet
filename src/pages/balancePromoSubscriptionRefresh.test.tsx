@@ -11,6 +11,8 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'ru' } }),
   initReactI18next: { type: '3rdParty', init: () => {} },
 }));
+// Saved cards (toasts, confirm dialog, SBP probe) are not what this test is about.
+vi.mock('@/components/postq/payment/SavedCardsSection', () => ({ SavedCardsSection: () => null }));
 vi.mock('../store/auth', () => ({
   useAuthStore: (selector: (s: typeof state) => unknown) => selector(state),
 }));
@@ -62,10 +64,11 @@ it('refreshes an already cached subscription after granting promo days', async (
     </QueryClientProvider>,
   );
   expect(await screen.findByText('old-date')).toBeTruthy();
-  fireEvent.change(screen.getByPlaceholderText('balance.promocode.placeholder'), {
+  // The payment page's design version loads lazily (designSwitch).
+  fireEvent.change(await screen.findByPlaceholderText('postq.payment.promoPlaceholder'), {
     target: { value: 'FREE3' },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'balance.promocode.activate' }));
+  fireEvent.click(screen.getByRole('button', { name: 'postq.payment.promoActivate' }));
   expect(await screen.findByText('Three free days')).toBeTruthy();
   expect(await screen.findByText('granted-date')).toBeTruthy();
   client.clear();

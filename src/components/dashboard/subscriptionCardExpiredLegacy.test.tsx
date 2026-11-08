@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PlatformProvider } from '@/platform/PlatformProvider';
+import { ToastProvider } from '@/components/Toast';
 import type { Subscription } from '@/types';
 
 /**
@@ -99,13 +100,15 @@ async function renderCard(sub: Subscription) {
   render(
     <QueryClientProvider client={client}>
       <PlatformProvider>
-        <MemoryRouter initialEntries={['/']}>
-          <Routes>
-            <Route path="/" element={<Card subscription={sub} balanceKopeks={500000} />} />
-            <Route path="/subscriptions/:id/renew" element={<div>экран выбора периода</div>} />
-            <Route path="/subscription/purchase" element={<div>витрина тарифов</div>} />
-          </Routes>
-        </MemoryRouter>
+        <ToastProvider>
+          <MemoryRouter initialEntries={['/']}>
+            <Routes>
+              <Route path="/" element={<Card subscription={sub} balanceKopeks={500000} />} />
+              <Route path="/subscriptions/:id/renew" element={<div>экран выбора периода</div>} />
+              <Route path="/subscription/purchase" element={<div>витрина тарифов</div>} />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>
       </PlatformProvider>
     </QueryClientProvider>,
   );

@@ -87,6 +87,24 @@ describe('installDoneKey', () => {
     stop();
   });
 
+  it('поле в форме держит фокус до отправки формы и отпускает его следом', async () => {
+    const hideKeyboard = vi.fn();
+    const stop = installDoneKey({ hideKeyboard });
+    const form = document.createElement('form');
+    const input = document.createElement('input');
+    form.append(input);
+    document.body.append(form);
+    input.focus();
+
+    pressEnter(input);
+    // Default action of this keydown (implicit submit) still sees the focus.
+    expect(document.activeElement).toBe(input);
+    await tick();
+    expect(document.activeElement).not.toBe(input);
+    expect(hideKeyboard).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
   it('Enter, который уже обработало поле (preventDefault), клавиатуру не закрывает', () => {
     const hideKeyboard = vi.fn();
     const stop = installDoneKey({ hideKeyboard });

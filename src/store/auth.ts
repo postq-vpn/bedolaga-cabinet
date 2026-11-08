@@ -40,6 +40,8 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   isAdmin: boolean;
+  /** isAdmin has been confirmed by the server this session (not just the default). */
+  adminChecked: boolean;
   pendingCampaignBonus: CampaignBonusInfo | null;
 
   setTokens: (accessToken: string, refreshToken: string) => void;
@@ -88,6 +90,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: true,
       isAdmin: false,
+      adminChecked: false,
       pendingCampaignBonus: null,
 
       clearCampaignBonus: () => set({ pendingCampaignBonus: null }),
@@ -132,19 +135,19 @@ export const useAuthStore = create<AuthState>()(
         try {
           const token = tokenStorage.getAccessToken();
           if (!token || !isTokenValid(token)) {
-            set({ isAdmin: false });
+            set({ isAdmin: false, adminChecked: true });
             usePermissionStore.getState().reset();
             return;
           }
           const response = await apiClient.get<{ is_admin: boolean }>('/cabinet/auth/me/is-admin');
-          set({ isAdmin: response.data.is_admin });
+          set({ isAdmin: response.data.is_admin, adminChecked: true });
           if (response.data.is_admin) {
             await usePermissionStore.getState().fetchPermissions();
           } else {
             usePermissionStore.getState().reset();
           }
         } catch {
-          set({ isAdmin: false });
+          set({ isAdmin: false, adminChecked: true });
           usePermissionStore.getState().reset();
         }
       },

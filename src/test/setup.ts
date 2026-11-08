@@ -88,3 +88,7 @@ if (typeof (globalThis as GlobalRecord).document !== 'undefined') {
   restore('localStorage');
   restore('sessionStorage');
 }
+
+// The suite covers the postq redesign; it is behind an admin switch in the app
+// (src/design/postqDesign.ts), so tests force it on.
+globalThis.__POSTQ_DESIGN_OVERRIDE__ = true;

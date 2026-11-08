@@ -49,3 +49,10 @@ interface Window {
     Login?: TelegramLoginGlobal;
   };
 }
+
+// Locale halves served by vite-plugins/localeSplit.ts.
+declare module 'virtual:locale/*' {
+  import type { ResourceLanguage } from 'i18next';
+  const resources: ResourceLanguage;
+  export default resources;
+}

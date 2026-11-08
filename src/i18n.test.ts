@@ -57,7 +57,7 @@ describe('тема до первой отрисовки', () => {
     // а в index.html зашиты class="dark" и тёмный фон. Пользователь светлой
     // темы поэтому видит тёмную вспышку — тем заметнее, что рендер теперь
     // ждёт словари.
-    expect(htmlSource).toMatch(/cabinet-theme/);
+    expect(htmlSource).toMatch(/cabinet-theme-choice/);
   });
 
   it('ключи хранилища в инлайн-скрипте совпадают с STORAGE_KEYS', async () => {

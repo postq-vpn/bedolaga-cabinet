@@ -10,17 +10,33 @@ type Theme = 'dark' | 'light';
 const THEME_KEY = STORAGE_KEYS.THEME;
 const ENABLED_THEMES_KEY = STORAGE_KEYS.ENABLED_THEMES;
 
-// Fetch enabled themes from API
-async function fetchEnabledThemes(): Promise<EnabledThemes> {
-  try {
-    const data = await themeColorsApi.getEnabledThemes();
-    // Cache for faster subsequent loads
-    safeLocal.setJson(ENABLED_THEMES_KEY, data);
-    return data;
-  } catch {
-    // Ignore errors, use cached or default
+// Fetch enabled themes from API. Every useTheme() mount asks for them, and a
+// page mounts several — they share one request, reused for a minute.
+const ENABLED_THEMES_TTL_MS = 60_000;
+let enabledThemesRequest: { at: number; promise: Promise<EnabledThemes> } | null = null;
+
+function fetchEnabledThemes(force = false): Promise<EnabledThemes> {
+  if (
+    !force &&
+    enabledThemesRequest &&
+    Date.now() - enabledThemesRequest.at < ENABLED_THEMES_TTL_MS
+  ) {
+    return enabledThemesRequest.promise;
   }
-  return getCachedEnabledThemes();
+  const promise = themeColorsApi
+    .getEnabledThemes()
+    .then((data) => {
+      // Cache for faster subsequent loads
+      safeLocal.setJson(ENABLED_THEMES_KEY, data);
+      return data;
+    })
+    .catch(() => {
+      // Ignore errors, use cached or default; don't keep the failure around.
+      enabledThemesRequest = null;
+      return getCachedEnabledThemes();
+    });
+  enabledThemesRequest = { at: Date.now(), promise };
+  return promise;
 }
 
 // Get cached enabled themes synchronously.
@@ -48,7 +64,7 @@ export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(() => {
     const enabled = getCachedEnabledThemes();
 
-    // Check localStorage first
+    // A choice made with the toggle first, otherwise the device's theme.
     if (typeof window !== 'undefined') {
       const stored = safeLocal.getItem(THEME_KEY) as Theme | null;
       if (stored === 'light' && enabled.light) {
@@ -159,7 +175,8 @@ export function useTheme() {
       root.classList.add('dark');
     }
 
-    safeLocal.setItem(THEME_KEY, theme);
+    // Not persisted here: only an explicit choice (setTheme/toggleTheme) is
+    // stored, so without one the theme keeps following the device.
     // Notify other useTheme() instances in the same tab
     window.dispatchEvent(new CustomEvent(THEME_CHANGED_EVENT, { detail: theme }));
   }, [theme, enabledThemes]);
@@ -179,14 +196,14 @@ export function useTheme() {
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
 
+    // The device switched its theme (manually or on schedule): follow it, and
+    // drop a choice made with the toggle — it held only until now.
     const handleChange = (e: MediaQueryListEvent) => {
-      const stored = safeLocal.getItem(THEME_KEY);
-      // Only auto-switch if user hasn't set a preference and theme is enabled
-      if (!stored) {
-        const newTheme = e.matches ? 'light' : 'dark';
-        if (enabledThemes[newTheme]) {
-          setThemeState(newTheme);
-        }
+      if (getTelegramColorScheme()) return; // inside Telegram the client decides
+      const newTheme = e.matches ? 'light' : 'dark';
+      if (enabledThemes[newTheme]) {
+        safeLocal.removeItem(THEME_KEY);
+        setThemeState(newTheme);
       }
     };
 
@@ -198,6 +215,7 @@ export function useTheme() {
     (newTheme: Theme) => {
       // Only allow setting if theme is enabled
       if (enabledThemes[newTheme]) {
+        safeLocal.setItem(THEME_KEY, newTheme);
         setThemeState(newTheme);
       }
     },
@@ -207,8 +225,9 @@ export function useTheme() {
   const toggleTheme = useCallback(() => {
     setThemeState((prev) => {
       const newTheme = prev === 'dark' ? 'light' : 'dark';
-      // Only toggle if the new theme is enabled
+      // Only toggle if the new theme is enabled; remember it as an explicit choice.
       if (enabledThemes[newTheme]) {
+        safeLocal.setItem(THEME_KEY, newTheme);
         return newTheme;
       }
       return prev;
@@ -223,7 +242,7 @@ export function useTheme() {
 
   // Refresh enabled themes from API
   const refreshEnabledThemes = useCallback(() => {
-    fetchEnabledThemes().then((data) => {
+    fetchEnabledThemes(true).then((data) => {
       setEnabledThemes(data);
       if (!data[theme]) {
         const newTheme = data.dark ? 'dark' : 'light';

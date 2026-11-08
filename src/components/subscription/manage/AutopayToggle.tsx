@@ -14,6 +14,8 @@ export interface AutopayToggleProps {
   offColor: string;
   /** Фон и рамка плашки; без них компонент рисуется без подложки. */
   surface?: { background: string; border: string };
+  /** postq: the "Автопродление" row from the cabinet frames (colours ignored). */
+  variant?: 'default' | 'postq';
 }
 
 /**
@@ -34,6 +36,7 @@ export function AutopayToggle({
   accentColor,
   offColor,
   surface,
+  variant = 'default',
 }: AutopayToggleProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -43,6 +46,8 @@ export function AutopayToggle({
       subscriptionApi.updateAutopay(enabled, undefined, subscriptionId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscription', subscriptionId] });
+      // The dashboard keeps the current subscription under ['subscription'].
+      queryClient.invalidateQueries({ queryKey: ['subscription'], exact: true });
       queryClient.invalidateQueries({ queryKey: ['subscriptions-list'] });
       // Enabling balance-autopay cancels SBP auto-pay server-side — refresh so
       // the SBP block doesn't keep showing a now-stale 'active'/'pending' state.
@@ -51,6 +56,28 @@ export function AutopayToggle({
   });
 
   if (!showsAutopayToggle(subscription)) return null;
+
+  if (variant === 'postq') {
+    return (
+      <div className="flex min-h-[76px] items-center justify-between gap-4 rounded-[var(--rd-radius-md)] bg-[var(--rd-field)] px-6 py-4">
+        <div className="rd-p-md flex min-w-0 flex-col gap-1">
+          <span className="text-[var(--rd-heading)]">{t('subscription.autoRenewal')}</span>
+          <span className="text-[var(--rd-caption)]">
+            {t('subscription.daysBeforeExpiry', { count: subscription.autopay_days_before })}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => autopayMutation.mutate(!subscription.autopay_enabled)}
+          disabled={autopayMutation.isPending}
+          role="switch"
+          aria-checked={subscription.autopay_enabled}
+          aria-label={t('subscription.autopay', 'Auto-payment')}
+          className="rd-switch"
+        />
+      </div>
+    );
+  }
 
   return (
     <div

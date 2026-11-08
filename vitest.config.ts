@@ -1,9 +1,12 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+import { localeSplit } from './vite-plugins/localeSplit.ts';
 
 // Kept separate from vite.config.ts so the app build config stays untouched;
 // utility tests run in a plain node environment (no jsdom needed).
 export default defineConfig({
+  // Same locale split as the app (src/i18n.ts imports virtual:locale/*).
+  plugins: [localeSplit(fileURLToPath(new URL('./src/locales', import.meta.url)))],
   // Тот же алиас, что и в vite.config.ts. Без него `import { x } from '@/...'`
   // падает в рантайме теста: существующие тесты этого не замечали, потому что
   // используют только `import type`, а он стирается на компиляции.

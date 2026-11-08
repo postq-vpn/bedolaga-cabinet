@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import type { ComponentType } from 'react';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -265,14 +265,19 @@ describe('состояния загрузки страниц', () => {
         </QueryClientProvider>,
       );
 
-      const groups = screen.getAllByRole('status');
-      expect(groups.length).toBeGreaterThanOrEqual(1);
-      expect(groups[0].getAttribute('aria-busy')).toBe('true');
+      // Redesigned pages load their design version lazily (designSwitch): wait
+      // until the page itself replaces the loader.
+      let groups: HTMLElement[] = [];
+      await waitFor(() => {
+        groups = screen.getAllByRole('status');
+        expect(groups.length).toBeGreaterThanOrEqual(1);
+        expect(groups[0].getAttribute('aria-busy')).toBe('true');
 
-      // Плейсхолдеры примитива, а не инлайновая разметка. Заливку иногда
-      // перекрывает вызывающая сторона (стеклянные карточки Subscriptions),
-      // поэтому проверяем сам факт плейсхолдеров.
-      expect(groups[0].querySelectorAll('span').length).toBeGreaterThan(0);
+        // Плейсхолдеры примитива, а не инлайновая разметка. Заливку иногда
+        // перекрывает вызывающая сторона (стеклянные карточки Subscriptions),
+        // поэтому проверяем сам факт плейсхолдеров.
+        expect(groups[0].querySelectorAll('span').length).toBeGreaterThan(0);
+      });
 
       // Внутри области загрузки спиннера быть не должно. Снаружи — можно:
       // кнопка «обновить» имеет право крутиться во время рефетча.

@@ -10,7 +10,9 @@ import { HEALTH } from '../../config/constants';
 import { CloudWarningIcon, RestartIcon } from '@/components/icons';
 import { Button } from '@/components/primitives';
 import { cn } from '@/lib/utils';
+import { usePostqDesign } from '@/design/postqDesign';
 import BlockingShell from './BlockingShell';
+import ServiceUnavailablePostq from './ServiceUnavailableScreen.postq';
 
 /**
  * Full-screen state shown when the backend is unreachable (transport-level
@@ -84,6 +86,17 @@ export default function ServiceUnavailableScreen() {
   }, [recover]);
 
   const screenRef = useFocusTrap<HTMLDivElement>(true, { lockScroll: false });
+  const postq = usePostqDesign();
+
+  if (postq) {
+    return (
+      <ServiceUnavailablePostq
+        screenRef={screenRef}
+        isChecking={isChecking}
+        onRetry={handleRetry}
+      />
+    );
+  }
 
   return (
     <BlockingShell

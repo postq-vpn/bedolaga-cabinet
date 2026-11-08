@@ -4,6 +4,7 @@ import { usePermissionStore } from '../../store/permissions';
 import { saveReturnUrl } from '../../utils/token';
 import PageLoader from '../common/PageLoader';
 import Layout from '../layout/Layout';
+import { useAdminLocales } from '../../hooks/useAdminLocales';
 
 interface PermissionRouteProps {
   children: React.ReactNode;
@@ -30,9 +31,10 @@ export function PermissionRoute({
   const hasPermission = usePermissionStore((state) => state.hasPermission);
   const hasAnyPermission = usePermissionStore((state) => state.hasAnyPermission);
   const hasAllPermissions = usePermissionStore((state) => state.hasAllPermissions);
+  const adminLocales = useAdminLocales(isAdmin);
 
-  // Still loading auth state, or admin but permissions not fetched yet
-  if (isLoading || (isAdmin && !permissionsLoaded)) {
+  // Still loading auth state, or admin but permissions / admin strings not fetched yet
+  if (isLoading || (isAdmin && (!permissionsLoaded || !adminLocales))) {
     return <PageLoader variant="light" />;
   }
 

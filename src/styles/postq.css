@@ -1,0 +1,808 @@
+/* ═══════════════════════════════════════════════════════════════════════════════
+   postq design system — cabinet edition
+   Source: Figma "postq-vpn-site-redesign" (cabinet frames, light + dark) and
+   postq-site/src/design-system/postq.css. Token names (--rd-*) and values are
+   the same as on the site, so both read as one product.
+
+   Differences from the site:
+   - the theme comes from the cabinet's own class on <html> (.light / .dark,
+     set by useTheme and the inline script in index.html), not data-rd-theme;
+   - the cabinet palette (--color-dark-*, --color-champagne-*, --color-accent-*)
+     that every upstream component is built on is pinned to these tokens, so
+     screens we don't redraw by hand (admin, info pages, dialogs) still come
+     out in postq colours. !important beats the operator palette that
+     applyThemeColors() writes inline on <html>: the brand is fixed here.
+
+   Everything global is scoped to `html.postq`: the redesign is behind a switch
+   (src/design/postqDesign.ts) and the upstream design must stay untouched.
+
+   Imported at the very top of globals.css, i.e. before Tailwind's own layers.
+   Overrides of upstream component classes therefore carry an `html` prefix
+   for specificity instead of relying on source order.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: "GT Eesti Pro Display";
+  src:
+    url("/fonts/gteestiprodisplay_regular.woff2") format("woff2"),
+    url("/fonts/gteestiprodisplay_regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "GT Eesti Pro Display";
+  src:
+    url("/fonts/gteestiprodisplay_medium.woff2") format("woff2"),
+    url("/fonts/gteestiprodisplay_medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "GT Eesti Pro Display";
+  src:
+    url("/fonts/gteestiprodisplay_bold.woff2") format("woff2"),
+    url("/fonts/gteestiprodisplay_bold.otf") format("opentype");
+  font-weight: 600 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─── Semantic tokens — light ─────────────────────────────────────────────── */
+html.postq {
+  --font-display:
+    "Twemoji Country Flags", "GT Eesti Pro Display", system-ui, -apple-system, sans-serif;
+
+  --rd-page: #f8f8f8; /* Surface/page */
+  --rd-surface: #ffffff; /* Surface/default — cards */
+  --rd-field: #f8f8f8; /* inputs, tiles inside a card */
+  --rd-chip: #f4f4f4; /* Surface/disabled — notices, chips */
+  --rd-chip-hover: #e9e9e9;
+  --rd-help: #fff4f9; /* Surface/help — soft action tiles, progress track */
+  --rd-action: #ff2181; /* Surface/action, Text/action */
+  --rd-action-hover: #e61a72;
+  --rd-action-soft: #ffe9f2; /* Surface/action-hover — secondary button */
+  --rd-action-soft-hover: #ffdaea;
+  --rd-on-action: #ffffff;
+  --rd-on-soft: #ff2181;
+  --rd-accent-border: #ffe9f2;
+
+  --rd-heading: #212023; /* Text/heading */
+  --rd-body: #4d4d4f; /* Text/body */
+  --rd-caption: #7a797b; /* Text/caption */
+  --rd-placeholder: #a6a6a7; /* Text/placeholder */
+  --rd-strike: #d3d2d3;
+
+  --rd-border: #e9e9e9; /* Border/disabled */
+  --rd-border-accent: #ffd3e6; /* Border/default — selected ticket, highlighted cards */
+  --rd-error: #ff3e3e; /* Icon/error — badges */
+  --rd-error-bg: #ffeded; /* failed auto-renewal notice */
+  --rd-error-text: #d92626;
+  --rd-success: #23b26d;
+  --rd-warn-bg: #fff9e5; /* Surface/warning */
+  --rd-warn-icon: #cca000;
+  --rd-success-bg: #eafdef; /* Surface/success */
+  --rd-success-text: #25be4b;
+
+  --rd-nav-bg: rgba(255, 255, 255, 0.7);
+  --rd-menu-bg: rgba(255, 255, 255, 0.94);
+  --rd-nav-link: rgba(33, 32, 35, 0.5);
+  --rd-icon-btn: rgba(0, 0, 0, 0.05);
+  --rd-divider: rgba(33, 32, 35, 0.05);
+  --rd-shadow: 0 4px 40px rgba(0, 0, 0, 0.05);
+  --rd-shadow-soft: 0 2px 24px rgba(0, 0, 0, 0.03);
+
+  --rd-radius-lg: 48px;
+  --rd-radius-md: 24px;
+  --rd-radius-control: 20px;
+  --rd-radius-sm: 12px;
+}
+
+/* ─── Semantic tokens — dark ──────────────────────────────────────────────── */
+html.postq.dark {
+  --rd-page: #1a1a1c;
+  --rd-surface: #212023;
+  --rd-field: #2b2a2d;
+  --rd-chip: #2b2a2d;
+  --rd-chip-hover: #373639;
+  --rd-help: #660d34;
+  --rd-action-soft: #660d34;
+  --rd-action-soft-hover: #7a1040;
+  --rd-on-soft: #ffd3e6;
+  --rd-accent-border: #99144d;
+
+  --rd-heading: #f8f8f8;
+  --rd-body: #d3d2d3;
+  --rd-caption: #a6a6a7;
+  --rd-placeholder: #908f91;
+  --rd-strike: #7a797b;
+
+  --rd-border: #4d4d4f;
+  --rd-border-accent: #99144d;
+  --rd-error-bg: #5c1a1a;
+  --rd-error-text: #ff9a9a;
+  --rd-warn-bg: #4d3d00;
+  --rd-warn-icon: #ffde66;
+  --rd-success-bg: #0f3a1c;
+  --rd-success-text: #6fdc8c;
+
+  --rd-nav-bg: rgba(26, 26, 28, 0.7);
+  --rd-menu-bg: rgba(33, 32, 35, 0.94);
+  --rd-nav-link: rgba(255, 255, 255, 0.4);
+  --rd-icon-btn: rgba(255, 255, 255, 0.05);
+  --rd-divider: rgba(255, 255, 255, 0.06);
+  --rd-shadow: 0 4px 40px rgba(0, 0, 0, 0.3);
+  --rd-shadow-soft: 0 2px 24px rgba(0, 0, 0, 0.18);
+}
+
+/* ─── Cabinet palette pinned to the tokens ────────────────────────────────── */
+/* Dark theme: the dark-* scale (950 = page … 50 = brightest text). */
+html.postq:not(.light) {
+  --color-dark-50: 255, 255, 255 !important;
+  --color-dark-100: 248, 248, 248 !important; /* heading */
+  --color-dark-200: 233, 233, 233 !important;
+  --color-dark-300: 211, 210, 211 !important; /* body */
+  --color-dark-400: 166, 166, 167 !important; /* caption */
+  --color-dark-500: 144, 143, 145 !important; /* placeholder */
+  --color-dark-600: 106, 105, 108 !important;
+  --color-dark-700: 77, 77, 79 !important; /* border */
+  --color-dark-800: 43, 42, 45 !important; /* field */
+  --color-dark-850: 38, 37, 40 !important;
+  --color-dark-900: 33, 32, 35 !important; /* surface */
+  --color-dark-950: 26, 26, 28 !important; /* page */
+  --color-dark-bg: #1a1a1c !important;
+  --color-dark-surface: #212023 !important;
+  --color-dark-text: #f8f8f8 !important;
+  --color-dark-text-secondary: #a6a6a7 !important;
+}
+
+/* Light theme: globals.css maps dark-N → champagne-(inverse) under .light, so
+   the champagne scale is where the light greys go. */
+html.postq {
+  --color-champagne-50: 244, 244, 244 !important; /* chip (← dark-800) */
+  --color-champagne-100: 255, 255, 255 !important; /* surface (← dark-900/850) */
+  --color-champagne-200: 248, 248, 248 !important; /* page (← dark-950) */
+  --color-champagne-300: 233, 233, 233 !important; /* border (← dark-700) */
+  --color-champagne-400: 211, 210, 211 !important; /* ← dark-600 */
+  --color-champagne-500: 166, 166, 167 !important; /* placeholder (← dark-500) */
+  --color-champagne-600: 122, 121, 123 !important; /* caption (← dark-400) */
+  --color-champagne-700: 77, 77, 79 !important; /* body (← dark-300) */
+  --color-champagne-800: 55, 54, 57 !important; /* ← dark-200 */
+  --color-champagne-900: 33, 32, 35 !important; /* heading (← dark-100) */
+  --color-champagne-950: 17, 17, 18 !important; /* ← dark-50 */
+  --color-light-bg: #f8f8f8 !important;
+  --color-light-surface: #ffffff !important;
+  --color-light-text: #212023 !important;
+  --color-light-text-secondary: #7a797b !important;
+
+  /* Brand pink. 500 = Surface/action. */
+  --color-accent-50: 255, 244, 249 !important;
+  --color-accent-100: 255, 233, 242 !important;
+  --color-accent-200: 255, 211, 230 !important;
+  --color-accent-300: 255, 140, 192 !important;
+  --color-accent-400: 255, 77, 154 !important;
+  --color-accent-500: 255, 33, 129 !important;
+  --color-accent-600: 230, 26, 114 !important;
+  --color-accent-700: 184, 21, 91 !important;
+  --color-accent-800: 153, 20, 77 !important;
+  --color-accent-900: 102, 13, 52 !important;
+  --color-accent-950: 61, 7, 31 !important;
+  --color-on-accent: 255, 255, 255 !important;
+}
+
+/* globals.css darkens accent text shades in the light theme for contrast; the
+   design uses the brand pink itself for links and accents, so keep it. */
+html.postq.light {
+  --color-accent-300: 255, 33, 129 !important;
+  --color-accent-400: 255, 33, 129 !important;
+}
+
+/* ─── Base ────────────────────────────────────────────────────────────────── */
+html.postq body {
+  background-color: var(--rd-page);
+  font-family: var(--font-display);
+  /* Grayscale AA like Figma (same as the site). */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+/* Tailwind's font-sans / font-display stacks are the upstream ones (Manrope,
+   Outfit); under the redesign every face is GT Eesti. */
+html.postq .font-sans,
+html.postq .font-display {
+  font-family: var(--font-display);
+}
+/* The site is flat: no film-grain overlay. */
+html.postq body::before {
+  display: none;
+}
+html.postq ::selection {
+  background: rgba(255, 33, 129, 0.25);
+  color: var(--rd-heading);
+}
+
+/* ─── Upstream component classes restyled ─────────────────────────────────── */
+html.postq .card,
+html.postq.light .card {
+  background: var(--rd-surface);
+  border-color: transparent;
+  border-radius: var(--rd-radius-md);
+  box-shadow: none;
+}
+html.postq .card-hover:hover,
+html.postq.light .card-hover:hover {
+  background: var(--rd-surface);
+  border-color: var(--rd-accent-border);
+  box-shadow: var(--rd-shadow-soft);
+}
+
+html.postq .btn,
+html.postq.light .btn {
+  border-radius: 16px;
+}
+html.postq .btn-primary,
+html.postq.light .btn-primary {
+  background: var(--rd-action);
+  color: var(--rd-on-action);
+  box-shadow: none;
+  font-weight: 500;
+}
+html.postq .btn-primary:hover:not(:disabled),
+html.postq.light .btn-primary:hover:not(:disabled) {
+  background: var(--rd-action-hover);
+  box-shadow: none;
+}
+html.postq .btn-secondary,
+html.postq.light .btn-secondary {
+  background: var(--rd-action-soft);
+  color: var(--rd-on-soft);
+  border-color: transparent;
+  font-weight: 500;
+}
+html.postq .btn-secondary:hover:not(:disabled),
+html.postq.light .btn-secondary:hover:not(:disabled) {
+  background: var(--rd-action-soft-hover);
+  color: var(--rd-on-soft);
+  border-color: transparent;
+}
+
+html.postq .input,
+html.postq.light .input {
+  background: var(--rd-field);
+  border-width: 2px;
+  border-color: transparent;
+  border-radius: var(--rd-radius-sm);
+  color: var(--rd-heading);
+  font-size: 16px;
+  line-height: 20px;
+}
+html.postq .input::placeholder,
+html.postq.light .input::placeholder {
+  color: var(--rd-placeholder);
+}
+html.postq .input:focus,
+html.postq.light .input:focus {
+  border-color: var(--rd-action);
+  box-shadow: none;
+}
+
+html.postq .label,
+html.postq.light .label {
+  color: var(--rd-heading);
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 400;
+}
+
+/* ─── postq components (rd-*) ─────────────────────────────────────────────── */
+.rd-h3 {
+  font-weight: 700;
+  font-size: clamp(32px, 3.6vw, 48px);
+  line-height: 1.25;
+}
+.rd-h4 {
+  font-weight: 700;
+  font-size: clamp(30px, 3vw, 40px);
+  line-height: 1.2;
+}
+.rd-h5 {
+  font-weight: 700;
+  font-size: clamp(24px, 2.4vw, 32px);
+  line-height: 1.125;
+}
+.rd-h6 {
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 32px;
+}
+.rd-p-lg {
+  font-weight: 400;
+  font-size: clamp(17px, 1.6vw, 20px);
+  line-height: 24px;
+}
+.rd-p-md {
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 20px;
+}
+.rd-p-sm {
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/* Card, 24px radius as in the cabinet frames (the site's big cards are 48). */
+.rd-card {
+  background: var(--rd-surface);
+  border-radius: var(--rd-radius-md);
+  padding: 24px;
+}
+@media (min-width: 768px) {
+  .rd-card--lg {
+    padding: 32px;
+  }
+}
+
+/* Primary action: 56px, 16px radius, 16/20 medium. */
+.rd-btn,
+.rd-btn-soft,
+.rd-btn-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+.rd-btn:active:not(:disabled),
+.rd-btn-soft:active:not(:disabled),
+.rd-btn-tile:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.rd-btn:disabled,
+.rd-btn-soft:disabled,
+.rd-btn-tile:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.rd-btn {
+  min-height: 56px;
+  padding: 0 24px;
+  border-radius: 16px;
+  background: var(--rd-action);
+  color: var(--rd-on-action);
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 500;
+}
+.rd-btn:hover:not(:disabled) {
+  background: var(--rd-action-hover);
+}
+/* Secondary (pink-tinted) — "Подарить". */
+.rd-btn-soft {
+  padding: 16px 32px;
+  border-radius: var(--rd-radius-control);
+  background: var(--rd-action-soft);
+  color: var(--rd-on-soft);
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 500;
+}
+.rd-btn-soft:hover:not(:disabled) {
+  background: var(--rd-action-soft-hover);
+}
+/* Large soft tile button — "Подключить устройство", "Продлить подписку". */
+.rd-btn-tile {
+  min-height: 72px;
+  padding: 16px 24px;
+  border-radius: var(--rd-radius-control);
+  background: var(--rd-help);
+  color: var(--rd-on-soft);
+  font-size: clamp(17px, 1.6vw, 20px);
+  line-height: 24px;
+  white-space: normal;
+  text-align: center;
+}
+.rd-btn-tile:hover:not(:disabled) {
+  background: var(--rd-action-soft-hover);
+}
+.rd-btn-tile.rd-btn-tile--primary {
+  background: var(--rd-action);
+  color: var(--rd-on-action);
+}
+.rd-btn-tile.rd-btn-tile--primary:hover:not(:disabled) {
+  background: var(--rd-action-hover);
+}
+.rd-btn-tile.rd-btn-tile--muted,
+.rd-btn-tile.rd-btn-tile--muted:hover {
+  background: var(--rd-chip);
+  color: var(--rd-placeholder);
+}
+
+.rd-btn:focus-visible,
+.rd-btn-soft:focus-visible,
+.rd-btn-tile:focus-visible,
+.rd-icon-btn:focus-visible,
+.rd-pill:focus-visible {
+  outline: 2px solid var(--rd-action);
+  outline-offset: 2px;
+  --tw-ring-shadow: 0 0 #0000;
+}
+
+/* 56px field (inputs, copy rows). */
+.rd-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 24px;
+  border-radius: var(--rd-radius-sm);
+  background: var(--rd-field);
+  color: var(--rd-heading);
+  font-size: 16px;
+  line-height: 20px;
+  border: 2px solid transparent;
+  transition: border-color 0.15s ease;
+}
+.rd-field:focus-within {
+  border-color: var(--rd-action);
+}
+.rd-field input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  box-shadow: none;
+}
+.rd-field input::placeholder {
+  color: var(--rd-placeholder);
+}
+
+/* Round icon button (header, card corners). */
+.rd-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50px;
+  background: var(--rd-icon-btn);
+  color: var(--rd-heading);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.rd-icon-btn:hover {
+  background: var(--rd-chip-hover);
+}
+
+/* Frosted nav pill (cabinet header). */
+.rd-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  border-radius: var(--rd-radius-control);
+  background: var(--rd-nav-bg);
+  box-shadow: var(--rd-shadow);
+  color: var(--rd-body);
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 500;
+  -webkit-backdrop-filter: blur(30px);
+  backdrop-filter: blur(30px);
+  will-change: backdrop-filter;
+  transition: color 0.15s ease;
+}
+.rd-pill:hover {
+  color: var(--rd-heading);
+}
+
+.rd-link {
+  color: var(--rd-caption);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.rd-link:hover {
+  color: var(--rd-heading);
+}
+.rd-link-action {
+  color: var(--rd-action);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.rd-link-action:hover {
+  color: var(--rd-action-hover);
+}
+
+/* Rich text from the backend (documents, FAQ answers, admin pages). */
+.rd-prose {
+  color: var(--rd-body);
+  font-size: 16px;
+  line-height: 24px;
+  overflow-wrap: anywhere;
+}
+.rd-prose > * + * {
+  margin-top: 12px;
+}
+.rd-prose :is(h1, h2, h3, h4, h5, h6) {
+  margin-top: 24px;
+  color: var(--rd-heading);
+  font-weight: 700;
+}
+.rd-prose > :first-child {
+  margin-top: 0;
+}
+.rd-prose :is(h1, h2) {
+  font-size: 24px;
+  line-height: 32px;
+}
+.rd-prose :is(h3, h4, h5, h6) {
+  font-size: 20px;
+  line-height: 24px;
+}
+.rd-prose :is(strong, b) {
+  color: var(--rd-heading);
+  font-weight: 500;
+}
+.rd-prose a {
+  color: var(--rd-action);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.rd-prose :is(ul, ol) {
+  padding-left: 24px;
+}
+.rd-prose ul {
+  list-style: disc;
+}
+.rd-prose ol {
+  list-style: decimal;
+}
+.rd-prose li + li {
+  margin-top: 4px;
+}
+.rd-prose blockquote {
+  padding-left: 16px;
+  border-left: 2px solid var(--rd-border);
+  color: var(--rd-caption);
+}
+.rd-prose :is(img, video, iframe) {
+  max-width: 100%;
+  border-radius: var(--rd-radius-sm);
+}
+.rd-prose hr {
+  border: 0;
+  border-top: 1px solid var(--rd-divider);
+}
+.rd-prose table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.rd-prose :is(th, td) {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--rd-divider);
+  text-align: left;
+}
+
+/* Toggle (Автопродление): 54×30 pink pill. */
+.rd-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 54px;
+  height: 30px;
+  border-radius: 30px;
+  background: var(--rd-border);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.rd-switch[aria-checked="true"] {
+  background: var(--rd-action);
+}
+.rd-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.rd-switch[aria-checked="true"]::after {
+  transform: translateX(24px);
+}
+.rd-switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Page column shared by the header, <main> and the footer. */
+.rd-container {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+@media (min-width: 640px) {
+  .rd-container {
+    padding-inline: 24px;
+  }
+}
+@media (min-width: 1536px) {
+  .rd-container {
+    padding-inline: 0;
+  }
+}
+
+/* Monochrome icon painted with the current text colour (see RdIcon.tsx). */
+.rd-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: var(--rd-icon-src) center / contain no-repeat;
+  mask: var(--rd-icon-src) center / contain no-repeat;
+}
+
+/* Theme-specific assets: <RdImg> renders both variants, CSS shows one. */
+html.postq.dark .rd-v-light,
+html.postq:not(.dark) .rd-v-dark {
+  display: none !important;
+}
+
+/* Theme toggle icon: moon in the light theme, sun in the dark one. */
+.rd-theme-icon {
+  display: block;
+  overflow: visible;
+}
+.rd-theme-icon g {
+  transform-origin: 12px 12px;
+  transition:
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.3s ease;
+}
+.rd-theme-icon__sun {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.4);
+}
+html.postq.dark .rd-theme-icon__moon {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.4);
+}
+html.postq.dark .rd-theme-icon__sun {
+  opacity: 1;
+  transform: none;
+}
+
+/* Circular reveal on theme switch: the new snapshot is clipped by JS. */
+html.postq.rd-theme-vt::view-transition-old(root),
+html.postq.rd-theme-vt::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* Fixed header offset from the top (site: top-3 / lg:top-7). */
+html.postq {
+  --rd-header-top: 12px;
+}
+@media (min-width: 1024px) {
+  html.postq {
+    --rd-header-top: 28px;
+  }
+}
+
+/* Trial offer card: white (surface) fading into a 10% pink, Figma "Пробная подписка". */
+.rd-trial-card {
+  background: var(--rd-surface);
+}
+
+/* Tile button on the page background (outside a card) needs the stronger tint. */
+.rd-btn-tile.rd-btn-tile--soft {
+  background: var(--rd-action-soft);
+}
+.rd-btn-tile.rd-btn-tile--soft:hover:not(:disabled) {
+  background: var(--rd-action-soft-hover);
+}
+
+.rd-h2 {
+  font-weight: 700;
+  font-size: clamp(40px, 4.6vw, 60px);
+  line-height: 1.2;
+}
+
+/* Upstream bento cards (referral, partner, withdrawals …) as postq cards. */
+html.postq .bento-card,
+html.postq.light .bento-card {
+  background: var(--rd-surface);
+  border-color: transparent;
+  border-radius: var(--rd-radius-md);
+  box-shadow: none;
+  padding: 24px;
+}
+@media (min-width: 768px) {
+  html.postq .bento-card,
+  html.postq.light .bento-card {
+    padding: 32px;
+  }
+}
+
+/* Blobatar hover motion driven by a whole button, not just the avatar. */
+@media (hover: hover) and (pointer: fine) {
+  .rd-avatar-hover:hover .mo-root {
+    --mo-amp: 1;
+    transform: translateY(-1.5px) scale(1.04);
+  }
+}
+
+/* Preloader (src/components/postq/Preloader.tsx), as on postq-site: the
+   overlay waits 300 ms before fading in, so fast loads never show it. */
+.rd-preloader {
+  opacity: 0;
+  animation: rd-preloader-in 0.25s ease-out 0.3s forwards;
+}
+@keyframes rd-preloader-in {
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rd-preloader {
+    animation-duration: 0.01s;
+  }
+}
+
+/* Liquid glass bottom bar (iOS-style): clear, heavily blurred and saturated,
+   with a thin specular edge; the active tab is a neutral frosted lozenge. */
+.rd-liquid-glass {
+  background: rgba(255, 255, 255, 0.36);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.24),
+    0 8px 32px rgba(0, 0, 0, 0.12);
+  will-change: backdrop-filter;
+}
+.rd-liquid-glass__active {
+  background: rgba(0, 0, 0, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+html.postq.dark .rd-liquid-glass {
+  background: rgba(40, 40, 44, 0.4);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+}
+html.postq.dark .rd-liquid-glass__active {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .rd-liquid-glass {
+    background: var(--rd-surface);
+  }
+}
+.rd-liquid-glass__slider {
+  transition:
+    transform 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.2s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rd-liquid-glass__slider {
+    transition: none;
+  }
+}

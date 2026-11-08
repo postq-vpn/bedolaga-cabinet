@@ -38,6 +38,12 @@ export function useOnboarding() {
   return { isCompleted, complete, reset };
 }
 
+/** The visible element of a step: phones and desktop can each have their own. */
+function findTarget(name: string): Element | null {
+  const all = [...document.querySelectorAll(`[data-onboarding="${name}"]`)];
+  return all.find((el) => el.getClientRects().length > 0) ?? all[0] ?? null;
+}
+
 export default function Onboarding({ steps, onComplete, onSkip }: OnboardingProps) {
   const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
@@ -63,7 +69,7 @@ export default function Onboarding({ steps, onComplete, onSkip }: OnboardingProp
 
     const tryFind = () => {
       if (cancelled) return;
-      const target = document.querySelector(`[data-onboarding="${step.target}"]`);
+      const target = findTarget(step.target);
       if (target) {
         const rect = target.getBoundingClientRect();
         setTargetRect(rect);
@@ -96,7 +102,7 @@ export default function Onboarding({ steps, onComplete, onSkip }: OnboardingProp
   // Recalculate position on resize/scroll
   useEffect(() => {
     const updatePosition = () => {
-      const target = document.querySelector(`[data-onboarding="${step.target}"]`);
+      const target = findTarget(step.target);
       if (target) {
         setTargetRect(target.getBoundingClientRect());
       }

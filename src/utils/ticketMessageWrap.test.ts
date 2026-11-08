@@ -18,7 +18,9 @@ import { describe, expect, it } from 'vitest';
  */
 
 const RENDERERS = [
-  'src/pages/Support.tsx',
+  // Both designs of the support page (src/design/postqDesign.ts).
+  'src/pages/Support.postq.tsx',
+  'src/pages/Support.legacy.tsx',
   'src/pages/AdminTickets.tsx',
   'src/components/admin/userDetail/TicketsTab.tsx',
 ];

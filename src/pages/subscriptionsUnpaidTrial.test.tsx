@@ -49,12 +49,8 @@ it.each([false, true])(
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(
-      await screen.findByRole('heading', { name: 'dashboard.trialOffer.paidTitle' }),
-    ).toBeTruthy();
-    expect(
-      await screen.findByRole('button', { name: 'subscription.trial.payAndActivate' }),
-    ).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'postq.dashboard.trialTitle' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'postq.dashboard.activateFor' })).toBeTruthy();
     expect(screen.queryByText('Тестовая')).toBeNull();
     expect(screen.queryByRole('link', { name: /Подключиться/ })).toBeNull();
     client.clear();

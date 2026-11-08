@@ -1,5 +1,8 @@
 export const STORAGE_KEYS = {
-  THEME: 'cabinet-theme',
+  /** Тема, выбранная вручную кнопкой. Нет записи — тема берётся с устройства.
+   *  Старый ключ `cabinet-theme` писался при каждом заходе и намертво фиксировал
+   *  первую тему, поэтому его не читаем (index.html его удаляет). */
+  THEME: 'cabinet-theme-choice',
   ENABLED_THEMES: 'cabinet-enabled-themes',
   /** Подсказка первой отрисовки: имя, буква и иконка бренда для инлайн-скрипта index.html. */
   BRAND_HINT: 'cabinet-brand-hint',

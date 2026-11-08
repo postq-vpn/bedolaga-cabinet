@@ -100,7 +100,7 @@ it.each([
     </QueryClientProvider>,
   );
   expect(await screen.findByRole('heading', { name: 'Anore' })).toBeTruthy();
-  if (label) fireEvent.click(screen.getByRole('button', { name: label }));
+  if (label) fireEvent.click(screen.getByRole('radio', { name: label }));
   fireEvent.click(screen.getByRole('button', { name: /balance\.topUp|balance\.pay/i }));
   await waitFor(() => expect(createTopUp).toHaveBeenCalledWith(50000, 'anore', option));
 });

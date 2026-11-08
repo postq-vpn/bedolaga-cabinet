@@ -1,11 +1,21 @@
 import i18n, { type ResourceLanguage } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
-const localeLoaders: Record<string, () => Promise<{ default: ResourceLanguage }>> = {
-  ru: () => import('./locales/ru.json'),
-  en: () => import('./locales/en.json'),
-  zh: () => import('./locales/zh.json'),
-  fa: () => import('./locales/fa.json'),
+type Loader = () => Promise<{ default: ResourceLanguage }>;
+
+// Each locale comes as two chunks (vite-plugins/localeSplit.ts): `base` for
+// everyone and `admin` with the admin panel's strings, loaded only for admins.
+const localeLoaders: Record<string, Loader> = {
+  ru: () => import('virtual:locale/ru/base'),
+  en: () => import('virtual:locale/en/base'),
+  zh: () => import('virtual:locale/zh/base'),
+  fa: () => import('virtual:locale/fa/base'),
+};
+const adminLoaders: Record<string, Loader> = {
+  ru: () => import('virtual:locale/ru/admin'),
+  en: () => import('virtual:locale/en/admin'),
+  zh: () => import('virtual:locale/zh/admin'),
+  fa: () => import('virtual:locale/fa/admin'),
 };
 
 const SUPPORTED_LANGS = Object.keys(localeLoaders);
@@ -15,7 +25,10 @@ const LANGUAGE_STORAGE_KEY = 'cabinet_language';
 const loadedLanguages = new Set<string>();
 
 async function loadLanguage(lng: string): Promise<void> {
-  if (loadedLanguages.has(lng)) return;
+  if (loadedLanguages.has(lng)) {
+    if (adminWanted) await loadAdmin(lng);
+    return;
+  }
 
   const loader = localeLoaders[lng];
   if (!loader) return;
@@ -23,6 +36,42 @@ async function loadLanguage(lng: string): Promise<void> {
   const mod = await loader();
   i18n.addResourceBundle(lng, 'translation', mod.default, true, true);
   loadedLanguages.add(lng);
+  if (adminWanted) await loadAdmin(lng);
+}
+
+// ── Admin strings ──────────────────────────────────────────────────────────
+let adminWanted = false;
+const adminLoaded = new Map<string, Promise<void>>();
+const adminDone = new Set<string>();
+
+function loadAdmin(lng: string): Promise<void> {
+  const loader = adminLoaders[lng];
+  if (!loader) return Promise.resolve();
+  let pending = adminLoaded.get(lng);
+  if (!pending) {
+    pending = loader()
+      .then((mod) => {
+        // Deep merge: `admin.nav` / `admin.infoPages` already came with `base`.
+        i18n.addResourceBundle(lng, 'translation', mod.default, true, true);
+        adminDone.add(lng);
+      })
+      .catch(() => {
+        adminLoaded.delete(lng); // let the next visit retry
+      });
+    adminLoaded.set(lng, pending);
+  }
+  return pending;
+}
+
+/** Whether the admin strings are already in for every language in use. */
+export function adminLocalesLoaded(): boolean {
+  return adminWanted && [...loadedLanguages].every((l) => adminDone.has(l));
+}
+
+/** Loads the admin panel's strings for the languages in use (idempotent). */
+export function ensureAdminLocales(): Promise<void> {
+  adminWanted = true;
+  return Promise.all([...loadedLanguages].map(loadAdmin)).then(() => undefined);
 }
 
 // The cabinet must always default to Russian, regardless of device/browser
@@ -50,6 +99,8 @@ i18n.use(initReactI18next).init({
 
   react: {
     useSuspense: false,
+    // Re-render when a bundle is added later (the admin strings arrive lazily).
+    bindI18nStore: 'added',
   },
 });
 

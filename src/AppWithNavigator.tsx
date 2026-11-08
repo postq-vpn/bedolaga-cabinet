@@ -15,6 +15,8 @@ import { PlatformProvider } from './platform/PlatformProvider';
 import { ThemeColorsProvider } from './providers/ThemeColorsProvider';
 import { DocumentBranding } from './components/DocumentBranding';
 import { WebSocketProvider } from './providers/WebSocketProvider';
+import { ConfirmDialogHost } from './components/postq/ConfirmDialogHost';
+import { PostqDesignClass } from './design/PostqDesignClass';
 import { ToastProvider } from './components/Toast';
 import { TooltipProvider } from './components/primitives/Tooltip';
 import { isInTelegramWebApp, closeTelegramApp } from './hooks/useTelegramSDK';
@@ -237,6 +239,8 @@ export function AppWithNavigator() {
             <DocumentBranding />
             <TooltipProvider>
               <ToastProvider>
+                <ConfirmDialogHost />
+                <PostqDesignClass />
                 <WebSocketProvider>
                   <Twemoji options={TWEMOJI_OPTIONS}>
                     <App />

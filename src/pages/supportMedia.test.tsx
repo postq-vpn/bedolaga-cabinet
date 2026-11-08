@@ -55,7 +55,7 @@ it.each(['create', 'reply'])('preserves mixed image and video types on %s', asyn
     </QueryClientProvider>,
   );
   if (mode === 'create') {
-    fireEvent.click(await screen.findByRole('button', { name: 'support.newTicket' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'postq.support.newTicket' }));
     fireEvent.change(screen.getByLabelText('support.subject'), {
       target: { value: 'Media check' },
     });
@@ -64,7 +64,7 @@ it.each(['create', 'reply'])('preserves mixed image and video types on %s', asyn
     });
   } else {
     fireEvent.click(await screen.findByRole('button', { name: /Media check/ }));
-    await screen.findByPlaceholderText('support.replyPlaceholder');
+    await screen.findByPlaceholderText('postq.support.replyPlaceholder');
   }
   const input = container.querySelector<HTMLInputElement>('input[type=file]')!;
   const video = new File(['video'], 'clip.mp4', { type: 'video/mp4' });

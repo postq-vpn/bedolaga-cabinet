@@ -62,6 +62,8 @@ export function BlockButtons({
   if (!buttons || buttons.length === 0) return null;
 
   const baseClass = blockButtonClass(variant, isLight);
+  // Adding the subscription is what the step is for — it gets the main button.
+  const deepLinkClass = variant === 'light' ? blockButtonClass('primary', isLight) : baseClass;
 
   return (
     <div className="mt-3 flex flex-wrap gap-2">
@@ -91,7 +93,7 @@ export function BlockButtons({
             <button
               key={idx}
               onClick={() => onOpenDeepLink(url)}
-              className={`flex items-center gap-2 ${baseClass}`}
+              className={`flex items-center gap-2 ${deepLinkClass}`}
             >
               {btnIcon}
               {btnText || getBaseTranslation('openApp', 'subscription.connection.openLink')}

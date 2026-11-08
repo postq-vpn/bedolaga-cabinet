@@ -49,7 +49,8 @@ export interface ReissueLinkButtonProps {
  *
  * Возвращает null там, где перевыпускать нечего: у пробных и у неактивных.
  */
-export function ReissueLinkButton({ subscription, subscriptionId }: ReissueLinkButtonProps) {
+/** Reissue state and action, shared by the button and the dashboard menu. */
+export function useReissueLink(subscription: Subscription, subscriptionId: number | undefined) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const haptic = useHaptic();
@@ -100,14 +101,30 @@ export function ReissueLinkButton({ subscription, subscriptionId }: ReissueLinkB
     revokeMutation.mutate(subscriptionId);
   };
 
-  if (!canReissueLink(subscription)) return null;
+  return {
+    canReissue: canReissueLink(subscription),
+    cooldown,
+    isPending: revokeMutation.isPending,
+    error: revokeMutation.error,
+    partialReset: failedResetStorageKey === storageKey,
+    handleRevoke,
+  };
+}
+
+export function ReissueLinkButton({ subscription, subscriptionId }: ReissueLinkButtonProps) {
+  const { t } = useTranslation();
+  const { canReissue, cooldown, isPending, error, partialReset, handleRevoke } = useReissueLink(
+    subscription,
+    subscriptionId,
+  );
+  if (!canReissue) return null;
 
   return (
     <>
       <button
         type="button"
         onClick={handleRevoke}
-        disabled={revokeMutation.isPending || cooldown > 0}
+        disabled={isPending || cooldown > 0}
         className="w-full rounded-xl border border-warning-500/30 bg-warning-500/10 p-4 text-left transition-colors hover:bg-warning-500/20 disabled:opacity-50"
       >
         <div className="flex items-center justify-between">
@@ -123,7 +140,7 @@ export function ReissueLinkButton({ subscription, subscriptionId }: ReissueLinkB
             </div>
           </div>
           <div className="text-warning-400">
-            {revokeMutation.isPending ? (
+            {isPending ? (
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-warning-400/30 border-t-amber-400" />
             ) : (
               <ArrowPathIcon className="h-5 w-5" />
@@ -131,14 +148,12 @@ export function ReissueLinkButton({ subscription, subscriptionId }: ReissueLinkB
           </div>
         </div>
       </button>
-      {failedResetStorageKey === storageKey && (
+      {partialReset && (
         <p role="status" className="mt-2 text-sm text-warning-400">
           {t('subscription.revoke.partialWarning')}
         </p>
       )}
-      {revokeMutation.error && (
-        <p className="mt-2 text-sm text-error-400">{getErrorMessage(revokeMutation.error)}</p>
-      )}
+      {error && <p className="mt-2 text-sm text-error-400">{getErrorMessage(error)}</p>}
     </>
   );
 }

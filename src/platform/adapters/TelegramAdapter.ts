@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/platform/confirmDialog';
 import { isInTelegramWebApp } from '@/hooks/useTelegramSDK';
 import {
   showBackButton,
@@ -150,7 +151,7 @@ function createDialogController(): DialogController {
 
     async confirm(message: string, _title?: string): Promise<boolean> {
       if (!inTelegram) {
-        return window.confirm(message);
+        return confirmDialog({ message });
       }
       try {
         const buttonId = await showPopup({
@@ -162,13 +163,15 @@ function createDialogController(): DialogController {
         });
         return buttonId === 'ok';
       } catch {
-        return window.confirm(message);
+        return confirmDialog({ message });
       }
     },
 
     async popup(options: PopupOptions): Promise<string | null> {
       if (!inTelegram) {
-        return window.confirm(options.message) ? 'ok' : null;
+        return (await confirmDialog({ message: options.message, title: options.title }))
+          ? 'ok'
+          : null;
       }
       try {
         const buttons = options.buttons?.map((btn) => {
@@ -185,7 +188,9 @@ function createDialogController(): DialogController {
         });
         return buttonId || null;
       } catch {
-        return window.confirm(options.message) ? 'ok' : null;
+        return (await confirmDialog({ message: options.message, title: options.title }))
+          ? 'ok'
+          : null;
       }
     },
   };

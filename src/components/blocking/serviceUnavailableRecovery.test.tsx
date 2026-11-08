@@ -10,7 +10,13 @@ const bootstrap = vi.hoisted(() => ({
   isAuthenticated: true,
   initialize: vi.fn<() => Promise<void>>(),
 }));
-vi.mock('../../store/auth', () => ({ useAuthStore: { getState: () => bootstrap } }));
+vi.mock('../../store/auth', () => ({
+  useAuthStore: Object.assign(
+    (select: (state: typeof bootstrap & { isAdmin: boolean }) => unknown) =>
+      select({ ...bootstrap, isAdmin: false }),
+    { getState: () => bootstrap },
+  ),
+}));
 vi.mock('../../api/health', () => ({
   pingBackend: async () => true,
   hasEverReachedBackend: () => true,

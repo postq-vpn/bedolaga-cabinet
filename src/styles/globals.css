@@ -1,3 +1,6 @@
+/* postq design system: tokens, fonts, brand palette — see the file header. */
+@import "./postq.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

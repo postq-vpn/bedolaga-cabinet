@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest';
 import { createInstance } from 'i18next';
 import { PlatformProvider } from '@/platform/PlatformProvider';
 import ru from '@/locales/ru.json';
@@ -26,6 +26,8 @@ vi.mock('react-i18next', async () => ({
   ...(await vi.importActual('react-i18next')),
   useTranslation: () => ({ t: translations.t.bind(translations), i18n: translations }),
 }));
+// Saved cards (toasts, confirm dialog, SBP probe) are not what this test is about.
+vi.mock('@/components/postq/payment/SavedCardsSection', () => ({ SavedCardsSection: () => null }));
 vi.mock('../store/auth', () => ({
   useAuthStore: (selector: (s: unknown) => unknown) => selector({ refreshUser: async () => {} }),
 }));
@@ -49,6 +51,14 @@ vi.mock('../api/balance', () => ({
   },
 }));
 afterEach(cleanup);
+// The amount range phrase is on the upstream payment page, while the test setup
+// turns the redesign on globally.
+beforeAll(() => {
+  globalThis.__POSTQ_DESIGN_OVERRIDE__ = false;
+});
+afterAll(() => {
+  globalThis.__POSTQ_DESIGN_OVERRIDE__ = true;
+});
 it.each([
   ['ru', 'От 10 до 5000'],
   ['en', 'From 10 to 5000'],

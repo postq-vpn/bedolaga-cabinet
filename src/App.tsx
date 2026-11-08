@@ -1,29 +1,10 @@
-import { safeSession } from './utils/safeStorage';
-import { lazy, Suspense, type ComponentType } from 'react';
+import { usePostqDesign } from './design/postqDesign';
+import { Suspense } from 'react';
+import { useAdminLocales } from './hooks/useAdminLocales';
 import { Routes, Route, Navigate, useLocation, useParams } from 'react-router';
 import { useAuthStore } from './store/auth';
 
-/**
- * Wrapper around React.lazy that auto-reloads the page when a chunk fails to load
- * (e.g. after a new deploy with different chunk hashes).
- */
-function lazyWithRetry<T extends ComponentType<unknown>>(factory: () => Promise<{ default: T }>) {
-  return lazy(() =>
-    factory().catch(() => {
-      const key = 'chunk_reload_ts';
-      const last = Number(safeSession.getItem(key) || '0');
-      // Метка обязана пережить сам reload — в этом её единственный смысл. Если
-      // сохранить её негде, перезагрузка станет бесконечной: после reload метки
-      // не окажется, и условие снова выполнится. Лучше отдать ошибку в
-      // ErrorBoundary, чем крутить страницу по кругу.
-      if (Date.now() - last > 30_000 && safeSession.setItem(key, String(Date.now()))) {
-        window.location.reload();
-      }
-      // Re-throw so ErrorBoundary catches it if reload guard prevents loop
-      return factory();
-    }),
-  );
-}
+import { lazyWithRetry } from './utils/lazyWithRetry';
 import { useBlockingStore } from './store/blocking';
 import Layout from './components/layout/Layout';
 import PageLoader from './components/common/PageLoader';
@@ -44,14 +25,14 @@ import { useAnalyticsCounters } from './hooks/useAnalyticsCounters';
 import { useSiteVerification } from './hooks/useSiteVerification';
 import { useDoneKey } from './hooks/useDoneKey';
 // Auth pages - load immediately (small)
-import Login from './pages/Login';
+const Login = lazyWithRetry(() => import('./pages/Login'));
 import TelegramCallback from './pages/TelegramCallback';
 import TelegramRedirect from './pages/TelegramRedirect';
 import DeepLinkRedirect from './pages/DeepLinkRedirect';
-import VerifyEmail from './pages/VerifyEmail';
-import ResetPassword from './pages/ResetPassword';
-import PublicLegal from './pages/PublicLegal';
-import OAuthCallback from './pages/OAuthCallback';
+const VerifyEmail = lazyWithRetry(() => import('./pages/VerifyEmail'));
+const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword'));
+const PublicLegal = lazyWithRetry(() => import('./pages/PublicLegal'));
+const OAuthCallback = lazyWithRetry(() => import('./pages/OAuthCallback'));
 
 // Dashboard - load eagerly (default route, LCP-critical).
 // HomeScreen выбирает между полным и простым видом по настройке оператора.
@@ -215,13 +196,19 @@ function ProtectedRoute({
   );
 }
 
+/** Route content that differs between the redesign and the upstream design. */
+function DesignRoute({ postq, legacy }: { postq: React.ReactNode; legacy: React.ReactNode }) {
+  return <>{usePostqDesign() ? postq : legacy}</>;
+}
+
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLoading = useAuthStore((state) => state.isLoading);
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const location = useLocation();
+  const adminLocales = useAdminLocales(isAdmin);
 
-  if (isLoading) {
+  if (isLoading || (isAdmin && !adminLocales)) {
     return <PageLoader variant="light" />;
   }
 
@@ -296,18 +283,67 @@ function App() {
       <BlockingOverlay />
       <Routes>
         {/* Public routes */}
-        <Route path="/login" element={<Login />} />
+        <Route
+          path="/login"
+          element={
+            <LazyPage>
+              <Login />
+            </LazyPage>
+          }
+        />
         <Route path="/auth/telegram/callback" element={<TelegramCallback />} />
         <Route path="/auth/telegram" element={<TelegramRedirect />} />
         <Route path="/tg" element={<TelegramRedirect />} />
         <Route path="/connect" element={<DeepLinkRedirect />} />
         <Route path="/add" element={<DeepLinkRedirect />} />
-        <Route path="/auth/oauth/callback" element={<OAuthCallback />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/offer" element={<PublicLegal doc="offer" />} />
-        <Route path="/privacy" element={<PublicLegal doc="privacy" />} />
-        <Route path="/recurrent-payments" element={<PublicLegal doc="recurrent" />} />
+        <Route
+          path="/auth/oauth/callback"
+          element={
+            <LazyPage>
+              <OAuthCallback />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="/verify-email"
+          element={
+            <LazyPage>
+              <VerifyEmail />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <LazyPage>
+              <ResetPassword />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="/offer"
+          element={
+            <LazyPage>
+              <PublicLegal doc="offer" />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="/privacy"
+          element={
+            <LazyPage>
+              <PublicLegal doc="privacy" />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="/recurrent-payments"
+          element={
+            <LazyPage>
+              <PublicLegal doc="recurrent" />
+            </LazyPage>
+          }
+        />
         <Route
           path="/merge/:mergeToken"
           element={
@@ -371,21 +407,35 @@ function App() {
         <Route
           path="/subscriptions"
           element={
-            <ProtectedRoute>
-              <LazyPage>
-                <Subscriptions />
-              </LazyPage>
-            </ProtectedRoute>
+            // postq: no separate subscription screens — its options live in the
+            // «…» menu on the dashboard card.
+            <DesignRoute
+              postq={<Navigate to="/" replace />}
+              legacy={
+                <ProtectedRoute>
+                  <LazyPage>
+                    <Subscriptions />
+                  </LazyPage>
+                </ProtectedRoute>
+              }
+            />
           }
         />
         <Route
           path="/subscriptions/:subscriptionId"
           element={
-            <ProtectedRoute>
-              <LazyPage>
-                <SubscriptionScreen />
-              </LazyPage>
-            </ProtectedRoute>
+            // postq: no separate subscription screens — its options live in the
+            // «…» menu on the dashboard card.
+            <DesignRoute
+              postq={<Navigate to="/" replace />}
+              legacy={
+                <ProtectedRoute>
+                  <LazyPage>
+                    <SubscriptionScreen />
+                  </LazyPage>
+                </ProtectedRoute>
+              }
+            />
           }
         />
         <Route
@@ -431,19 +481,26 @@ function App() {
         <Route
           path="/balance/saved-cards"
           element={
-            <ProtectedRoute>
-              <LazyPage>
-                <SavedCards />
-              </LazyPage>
-            </ProtectedRoute>
+            // postq: saved cards and the SBP autopay are a block on the payment page.
+            <DesignRoute
+              postq={<Navigate to="/balance" replace />}
+              legacy={
+                <ProtectedRoute>
+                  <LazyPage>
+                    <SavedCards />
+                  </LazyPage>
+                </ProtectedRoute>
+              }
+            />
           }
         />
         <Route
           path="/balance/top-up"
           element={
             <ProtectedRoute>
+              {/* postq: the payment page already lists the methods — no separate picker screen. */}
               <LazyPage>
-                <TopUpMethodSelect />
+                <DesignRoute postq={<Balance />} legacy={<TopUpMethodSelect />} />
               </LazyPage>
             </ProtectedRoute>
           }
@@ -493,21 +550,33 @@ function App() {
         <Route
           path="/referral/partner/apply"
           element={
-            <ProtectedRoute>
-              <LazyPage>
-                <ReferralPartnerApply />
-              </LazyPage>
-            </ProtectedRoute>
+            // postq: the application form is at the bottom of the referral page.
+            <DesignRoute
+              postq={<Navigate to="/referral" replace />}
+              legacy={
+                <ProtectedRoute>
+                  <LazyPage>
+                    <ReferralPartnerApply />
+                  </LazyPage>
+                </ProtectedRoute>
+              }
+            />
           }
         />
         <Route
           path="/referral/withdrawal/request"
           element={
-            <ProtectedRoute>
-              <LazyPage>
-                <ReferralWithdrawalRequest />
-              </LazyPage>
-            </ProtectedRoute>
+            // postq: no withdrawals.
+            <DesignRoute
+              postq={<Navigate to="/referral" replace />}
+              legacy={
+                <ProtectedRoute>
+                  <LazyPage>
+                    <ReferralWithdrawalRequest />
+                  </LazyPage>
+                </ProtectedRoute>
+              }
+            />
           }
         />
         <Route
@@ -533,11 +602,18 @@ function App() {
         <Route
           path="/profile/accounts"
           element={
-            <ProtectedRoute>
-              <LazyPage>
-                <ConnectedAccounts />
-              </LazyPage>
-            </ProtectedRoute>
+            // postq: email, Telegram and the other login methods are linked in the
+            // profile itself; OAuth and account merge return here.
+            <DesignRoute
+              postq={<Navigate to="/profile" replace />}
+              legacy={
+                <ProtectedRoute>
+                  <LazyPage>
+                    <ConnectedAccounts />
+                  </LazyPage>
+                </ProtectedRoute>
+              }
+            />
           }
         />
         <Route
@@ -573,11 +649,17 @@ function App() {
         <Route
           path="/info"
           element={
-            <ProtectedRoute>
-              <LazyPage>
-                <Info />
-              </LazyPage>
-            </ProtectedRoute>
+            // postq: documents and FAQ live in the profile («Документы и помощь»).
+            <DesignRoute
+              postq={<Navigate to="/profile" replace />}
+              legacy={
+                <ProtectedRoute>
+                  <LazyPage>
+                    <Info />
+                  </LazyPage>
+                </ProtectedRoute>
+              }
+            />
           }
         />
         <Route

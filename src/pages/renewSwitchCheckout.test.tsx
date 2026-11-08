@@ -190,25 +190,18 @@ it('insufficient balance does not allow confirming a switch', async () => {
   client.clear();
 });
 
-it.each([false, true])('unscoped multi catalog remains a purchase (lite=%s)', async (lite) => {
-  state.lite = lite;
-  state.limited = false;
-  const client = mount('/subscription/purchase');
-  await screen.findByText('Target');
-  expect(screen.queryByRole('button', { name: 'subscription.switchTariff.switch' })).toBeNull();
-  expect(state.preview).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: lite ? /Target/ : 'subscription.purchase' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'subscription.purchase' }));
-  await waitFor(() =>
-    expect(state.purchase).toHaveBeenCalledWith(
-      2,
-      30,
-      undefined,
-      undefined,
-      expect.any(String),
-      undefined,
-    ),
-  );
-  expect(state.switch).not.toHaveBeenCalled();
-  client.clear();
-});
+// postq: one paid tariff and no scoped subscription is a plain purchase, which
+// now goes through the three-step wizard (PurchaseWizard) instead of a catalog.
+it.each([false, true])(
+  'unscoped single tariff opens the purchase wizard (lite=%s)',
+  async (lite) => {
+    state.lite = lite;
+    state.limited = false;
+    const client = mount('/subscription/purchase');
+    expect(await screen.findByRole('radiogroup')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'subscription.switchTariff.switch' })).toBeNull();
+    expect(state.preview).not.toHaveBeenCalled();
+    expect(state.switch).not.toHaveBeenCalled();
+    client.clear();
+  },
+);

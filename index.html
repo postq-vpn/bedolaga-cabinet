@@ -79,7 +79,7 @@
       // Тема ДО первой отрисовки. useTheme вешает класс в useEffect, то есть уже
       // после неё, а тут зашиты class="dark" и тёмный фон — пользователь светлой
       // темы видел тёмную вспышку. Порядок разрешения повторяет useTheme:
-      // сохранённый выбор -> системная тема -> тёмная. Ветку Telegram намеренно
+      // выбор кнопкой -> тема устройства -> тёмная. Ветку Telegram намеренно
       // не трогаем: colorScheme доступен только после init() SDK, а внутри
       // Telegram фон и так задаёт клиент.
       (function () {
@@ -98,7 +98,9 @@
 
           var stored = null;
           try {
-            stored = localStorage.getItem('cabinet-theme');
+            // Старый ключ записывался автоматически и не давал следовать за устройством.
+            localStorage.removeItem('cabinet-theme');
+            stored = localStorage.getItem('cabinet-theme-choice');
           } catch (e) {}
 
           var theme;
@@ -255,6 +257,79 @@
     </script>
   </head>
   <body>
+    <script>
+      // Прелоадер postq до загрузки бандла (тот же логотип, что на postq-site и
+      // в src/components/postq/Preloader.tsx). Только в браузерах, где включён
+      // новый дизайн (ключ postq-design, см. src/design/postqDesign.ts).
+      // Проявляется через 300 мс — быстрая загрузка его не покажет. Снимает его
+      // React (src/components/postq/bootPreloader.ts), когда кабинет отрисовал
+      // контент; страховка — таймаут, чтобы упавший бандл не держал его вечно.
+      (function () {
+        try {
+          if (localStorage.getItem('postq-design') !== '1') return;
+        } catch (e) {
+          return;
+        }
+        // Шрифты postq браузер нашёл бы только после разбора CSS — просим сразу.
+        ['regular', 'medium', 'bold'].forEach(function (w) {
+          var l = document.createElement('link');
+          l.rel = 'preload';
+          l.as = 'font';
+          l.type = 'font/woff2';
+          l.crossOrigin = 'anonymous';
+          l.href = '/fonts/gteestiprodisplay_' + w + '.woff2';
+          document.head.appendChild(l);
+        });
+        var dark = document.documentElement.classList.contains('dark');
+        var el = document.createElement('div');
+        el.id = 'boot-preloader';
+        el.setAttribute('role', 'status');
+        el.setAttribute('aria-busy', 'true');
+        el.style.cssText =
+          'position:fixed;inset:0;z-index:110;display:flex;align-items:center;' +
+          'justify-content:center;opacity:0;transition:opacity .25s ease-out;' +
+          'background:' + (dark ? '#1a1a1c' : '#f8f8f8');
+        var box = document.createElement('div');
+        box.style.cssText = 'width:' + (innerWidth >= 640 ? 150 : 120) + 'px;aspect-ratio:789/835';
+        el.appendChild(box);
+        document.body.appendChild(el);
+        setTimeout(function () {
+          if (!el.isConnected) return;
+          el.style.opacity = '1';
+          // Анимацию грузим только когда прелоадер реально показан: быстрая
+          // загрузка обходится без лишних ~46 КБ, которые иначе отбирают канал
+          // у бандла.
+          loadAnimation();
+        }, 300);
+        setTimeout(function () {
+          if (el.isConnected) el.remove();
+        }, 15000);
+
+        function loadAnimation() {
+          var s = document.createElement('script');
+          s.src = '/redesign/lottie_light.min.js';
+          s.async = true;
+          s.onload = function () {
+            if (!el.isConnected || !window.lottie) return;
+            var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            var a = window.lottie.loadAnimation({
+              container: box,
+              renderer: 'svg',
+              loop: true,
+              autoplay: false,
+              path: '/redesign/preloader.json',
+            });
+            a.setSpeed(1.5);
+            a.addEventListener('DOMLoaded', function () {
+              if (reduce) a.goToAndStop(153, true);
+              else a.playSegments([0, 153], true);
+            });
+            el.__anim = a;
+          };
+          document.head.appendChild(s);
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script src="/postq-custom.js"></script>

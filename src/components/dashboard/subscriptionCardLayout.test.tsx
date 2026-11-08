@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PlatformProvider } from '@/platform/PlatformProvider';
+import { ToastProvider } from '@/components/Toast';
 import type { Subscription } from '@/types';
 
 /**
@@ -79,63 +80,54 @@ const idleMutation = {
 >[0]['refreshTrafficMutation'];
 
 async function renderCard(sub: Subscription, connectedDevices = 0) {
-  const Card = (await import('./SubscriptionCardActive')).default;
+  // The postq card itself — the switch loads its versions lazily.
+  const Card = (await import('./SubscriptionCardActive.postq')).default;
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const { container } = render(
     <QueryClientProvider client={client}>
       <PlatformProvider>
-        <MemoryRouter initialEntries={['/']}>
-          <Card
-            subscription={sub}
-            trafficData={null}
-            refreshTrafficMutation={idleMutation}
-            trafficRefreshCooldown={0}
-            connectedDevices={connectedDevices}
-          />
-        </MemoryRouter>
+        <ToastProvider>
+          <MemoryRouter initialEntries={['/']}>
+            <Card
+              subscription={sub}
+              trafficData={null}
+              refreshTrafficMutation={idleMutation}
+              trafficRefreshCooldown={0}
+              connectedDevices={connectedDevices}
+            />
+          </MemoryRouter>
+        </ToastProvider>
       </PlatformProvider>
     </QueryClientProvider>,
   );
   return container;
 }
 
-describe('ряд «Тариф» + «Осталось»', () => {
-  it('обе плитки умеют сжиматься — длинное имя тарифа не выталкивает соседа', async () => {
-    const container = await renderCard(subscription());
-
-    const row = container.querySelector('.mb-5.flex.gap-2\\.5');
-    expect(row).toBeTruthy();
-    const plates = [...(row?.children ?? [])];
-    expect(plates).toHaveLength(2);
-    for (const plate of plates) {
-      expect(plate.className).toContain('min-w-0');
-      expect(plate.className).toContain('flex-1');
-    }
-  });
-
-  it('имя тарифа переносится, а не обрезается в одну строку', async () => {
+describe('плитки «Устройства» + «Трафик»', () => {
+  it('обе плитки умеют сжиматься — длинное значение не выталкивает соседа', async () => {
     await renderCard(subscription());
 
-    const name = screen.getByText('🟡 Компания - 10 устройств');
-    expect(name.className).toContain('line-clamp-2');
-    expect(name.className).not.toContain('truncate');
+    for (const label of ['postq.dashboard.devices', 'postq.dashboard.traffic']) {
+      const tile = screen.getAllByText(label)[0].closest('.rounded-\\[var\\(--rd-radius-md\\)\\]');
+      expect(tile?.className).toContain('min-w-0');
+      expect(tile?.className).toContain('flex-1');
+    }
   });
 });
 
 describe('индикатор устройств', () => {
-  const dots = (container: Element) =>
-    container.querySelectorAll('.h-\\[7px\\].w-\\[7px\\].rounded-full');
+  const devicesBar = () =>
+    screen.getAllByRole('progressbar', { name: 'postq.dashboard.devices' })[0];
 
-  it('до пяти устройств показывает точки', async () => {
-    const container = await renderCard(subscription({ device_limit: 5 }), 2);
+  it('показывает долю подключённых устройств', async () => {
+    await renderCard(subscription({ device_limit: 5 }), 2);
 
-    expect(dots(container)).toHaveLength(5);
+    expect(devicesBar().getAttribute('aria-valuenow')).toBe('40');
   });
 
-  it('свыше пяти — полоску: десять точек не оставляли места заголовку', async () => {
-    const container = await renderCard(subscription({ device_limit: 10 }), 10);
+  it('на пределе — полная полоса', async () => {
+    await renderCard(subscription({ device_limit: 10 }), 10);
 
-    expect(dots(container)).toHaveLength(0);
-    expect(container.querySelector('.w-16 .rounded-full')).toBeTruthy();
+    expect(devicesBar().getAttribute('aria-valuenow')).toBe('100');
   });
 });

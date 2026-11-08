@@ -32,6 +32,7 @@ import { themeColorsQueryOptions } from './api/themeColors';
 import { applyThemeColors } from './hooks/useThemeColors';
 import { readThemeColorsHint } from './utils/themeColorsHint';
 import { UI } from './config/constants';
+import { scheduleBootPreloaderHide } from './components/postq/bootPreloader';
 import './styles/globals.css';
 
 // Harden the global encoders against lone UTF-16 surrogates (truncated emoji in
@@ -171,4 +172,6 @@ void Promise.all([i18nReady, themeColorsReady]).then(() => {
       </ErrorBoundary>
     </React.StrictMode>,
   );
+  // index.html's boot preloader: lifted once no PageLoader holds it.
+  scheduleBootPreloaderHide();
 });

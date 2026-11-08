@@ -1,3 +1,5 @@
+import { confirmDialog } from '@/platform/confirmDialog';
+import { isPostqDesign } from '@/design/postqDesign';
 import { useCallback } from 'react';
 import { usePlatform } from '@/platform/hooks/usePlatform';
 import type { PopupOptions, PopupButton } from '@/platform/types';
@@ -109,7 +111,9 @@ export function useDestructiveConfirm() {
         });
         return result === 'confirm';
       }
-      return dialog.confirm(message, title);
+      // Keeps the action's own label and the red button (window.confirm can't).
+      if (!isPostqDesign()) return dialog.confirm(message, title);
+      return confirmDialog({ message, title, confirmLabel: actionText, destructive: true });
     },
     [dialog],
   );

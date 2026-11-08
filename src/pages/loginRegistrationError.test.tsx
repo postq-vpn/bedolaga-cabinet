@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import Login from './Login';
+// The postq login itself — the Login switch loads its versions lazily.
+import Login from './Login.postq';
 import type { BrandingInfo } from '../api/branding';
 
 const logo = vi.hoisted(() => ({
@@ -39,6 +40,7 @@ vi.mock('../hooks/useTelegramSDK', () => ({
   }),
 }));
 vi.mock('../components/LanguageSwitcher', () => ({ default: () => null }));
+vi.mock('../components/postq/ThemeToggle', () => ({ ThemeToggleButton: () => null }));
 vi.mock('../components/TelegramLoginButton', () => ({ default: () => null }));
 vi.mock('../components/LegalFooter', () => ({ default: () => null }));
 vi.mock('../api/branding', () => ({
@@ -75,38 +77,6 @@ beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 });
 
-it('displays a delayed logo with unchanged cached branding without user interaction', async () => {
-  logo.cached = {
-    name: 'Example Cabinet',
-    logo_letter: 'E',
-    logo_url: '/cabinet/branding/logo',
-    has_custom_logo: true,
-  };
-  let finish!: () => void;
-  const loading = new Promise<void>((resolve) => {
-    finish = resolve;
-  });
-  logo.preload.mockReturnValue(loading);
-  render(
-    <QueryClientProvider client={client}>
-      <MemoryRouter>
-        <Login />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
-  await waitFor(() => expect(client.isFetching()).toBe(1));
-  expect(screen.queryByRole('img', { name: 'Example Cabinet' })).toBeNull();
-  await act(async () => {
-    logo.blob = 'blob:example-logo';
-    finish();
-    await loading;
-  });
-  // Наша страница входа показывает логотип в шапке и в подвале — проверяем шапку.
-  const [image] = await screen.findAllByRole('img', { name: 'Example Cabinet' });
-  expect(image.getAttribute('src')).toBe('blob:example-logo');
-  fireEvent.load(image);
-  expect(image.className).toContain('opacity-100');
-});
 afterEach(() => {
   cleanup();
   client.clear();
@@ -130,24 +100,14 @@ function error(status: number, detail: unknown) {
   );
 }
 
-it('shows the successful logo retry after the cached preload failed', async () => {
+it('shows the postq logo in the header and footer instead of the operator logo', async () => {
   logo.cached = {
-    name: 'Retry Cabinet',
-    logo_letter: 'R',
+    name: 'Example Cabinet',
+    logo_letter: 'E',
     logo_url: '/cabinet/branding/logo',
     has_custom_logo: true,
   };
-  let finishBranding!: (branding: BrandingInfo) => void;
-  logo.fetch.mockReturnValue(
-    new Promise<BrandingInfo>((resolve) => {
-      finishBranding = resolve;
-    }),
-  );
-  logo.preload
-    .mockImplementationOnce(async () => {})
-    .mockImplementationOnce(async () => {
-      logo.blob = 'blob:retried-logo';
-    });
+  logo.blob = 'blob:example-logo';
   render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
@@ -155,14 +115,9 @@ it('shows the successful logo retry after the cached preload failed', async () =
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  await waitFor(() => expect(logo.preload).toHaveBeenCalledOnce());
-  await act(async () => {
-    if (!logo.cached) throw new Error('Missing test branding');
-    finishBranding(logo.cached);
-  });
-  // Наша страница входа показывает логотип в шапке и в подвале — проверяем шапку.
-  const [image] = await screen.findAllByRole('img', { name: 'Retry Cabinet' });
-  expect(image.getAttribute('src')).toBe('blob:retried-logo');
+  expect(screen.getByRole('link', { name: 'PostqVPN — на главную' })).toBeTruthy();
+  expect(screen.getAllByAltText('PostqVPN').length).toBeGreaterThan(0);
+  expect(screen.queryByRole('img', { name: 'Example Cabinet' })).toBeNull();
 });
 
 it.each([
@@ -189,7 +144,7 @@ it.each([
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  if (mode === 'register') fireEvent.click(screen.getByRole('button', { name: 'auth.register' }));
+  if (mode === 'register') fireEvent.click(screen.getByRole('tab', { name: 'auth.register' }));
   fireEvent.change(screen.getByLabelText('auth.email'), {
     target: { value: 'reader@example.com' },
   });
@@ -219,7 +174,7 @@ it.each([true, false])(
       </QueryClientProvider>,
     );
     await waitFor(() => expect(client.isFetching()).toBe(0));
-    expect(Boolean(screen.queryByRole('button', { name: 'auth.loginWithEmail' }))).toBe(enabled);
+    expect(Boolean(screen.queryByRole('tablist', { name: 'auth.loginWithEmail' }))).toBe(enabled);
     expect(auth.loginWithTelegram).not.toHaveBeenCalled();
   },
 );

@@ -50,36 +50,40 @@ describe('isOpenTicketConflict', () => {
   });
 });
 
-describe('обработчики ошибок на форме поддержки', () => {
-  // Решение «это 409» вынесено в утилиту и покрыто выше, а вот сама привязка
-  // onError к мутациям — нет: в репозитории нет окружения для рендера
-  // компонентов (vitest настроен на node, без jsdom). Поэтому закрепляем
-  // структурно: пропажа onError — это ровно тот баг, который PR и чинит
-  // (форма молчала, человек жал «Отправить» повторно).
-  const source = readFileSync(new URL('../pages/Support.tsx', import.meta.url), 'utf8');
+// Both designs of the support page (src/design/postqDesign.ts).
+describe.each(['Support.postq.tsx', 'Support.legacy.tsx'])(
+  'обработчики ошибок на форме поддержки: %s',
+  (file) => {
+    // Решение «это 409» вынесено в утилиту и покрыто выше, а вот сама привязка
+    // onError к мутациям — нет: в репозитории нет окружения для рендера
+    // компонентов (vitest настроен на node, без jsdom). Поэтому закрепляем
+    // структурно: пропажа onError — это ровно тот баг, который PR и чинит
+    // (форма молчала, человек жал «Отправить» повторно).
+    const source = readFileSync(new URL(`../pages/${file}`, import.meta.url), 'utf8');
 
-  it('createMutation обрабатывает отказ бэка', () => {
-    const block = source.slice(
-      source.indexOf('const createMutation'),
-      source.indexOf('const replyMutation'),
-    );
-    expect(block).toContain('onError');
-    expect(block).toContain('isOpenTicketConflict');
-  });
+    it('createMutation обрабатывает отказ бэка', () => {
+      const block = source.slice(
+        source.indexOf('const createMutation'),
+        source.indexOf('const replyMutation'),
+      );
+      expect(block).toContain('onError');
+      expect(block).toContain('isOpenTicketConflict');
+    });
 
-  it('replyMutation обрабатывает отказ бэка', () => {
-    const block = source.slice(
-      source.indexOf('const replyMutation'),
-      source.indexOf('const getStatusBadge'),
-    );
-    expect(block).toContain('onError');
-  });
+    it('replyMutation обрабатывает отказ бэка', () => {
+      const block = source.slice(
+        source.indexOf('const replyMutation'),
+        source.indexOf('const getStatusBadge'),
+      );
+      expect(block).toContain('onError');
+    });
 
-  it('409 подтягивает список тикетов — открытый мог появиться в другой сессии', () => {
-    const block = source.slice(
-      source.indexOf('isOpenTicketConflict(error)'),
-      source.indexOf('const replyMutation'),
-    );
-    expect(block).toContain('invalidateQueries');
-  });
-});
+    it('409 подтягивает список тикетов — открытый мог появиться в другой сессии', () => {
+      const block = source.slice(
+        source.indexOf('isOpenTicketConflict(error)'),
+        source.indexOf('const replyMutation'),
+      );
+      expect(block).toContain('invalidateQueries');
+    });
+  },
+);

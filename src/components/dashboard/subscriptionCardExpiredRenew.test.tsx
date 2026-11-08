@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PlatformProvider } from '@/platform/PlatformProvider';
+import { ToastProvider } from '@/components/Toast';
 import type { Subscription } from '@/types';
 
 /**
@@ -106,12 +107,14 @@ async function renderCard(sub: Subscription, balanceKopeks: number) {
   render(
     <QueryClientProvider client={client}>
       <PlatformProvider>
-        <MemoryRouter initialEntries={['/']}>
-          <Routes>
-            <Route path="/" element={<Card subscription={sub} balanceKopeks={balanceKopeks} />} />
-            <Route path="/subscriptions/:id/renew" element={<div>экран выбора периода</div>} />
-          </Routes>
-        </MemoryRouter>
+        <ToastProvider>
+          <MemoryRouter initialEntries={['/']}>
+            <Routes>
+              <Route path="/" element={<Card subscription={sub} balanceKopeks={balanceKopeks} />} />
+              <Route path="/subscription/purchase" element={<div>экран выбора периода</div>} />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>
       </PlatformProvider>
     </QueryClientProvider>,
   );
@@ -121,7 +124,7 @@ describe('обычная истёкшая подписка', () => {
   it('открывает выбор периода вместо молчаливого списания за месяц', async () => {
     await renderCard(subscription(), 500000);
 
-    const renew = await screen.findByText('dashboard.expired.quickRenew');
+    const renew = await screen.findByText('postq.dashboard.resume');
     fireEvent.click(renew);
 
     expect(await screen.findByText('экран выбора периода')).toBeTruthy();
@@ -132,7 +135,7 @@ describe('обычная истёкшая подписка', () => {
   it('ведёт на выбор периода и без денег на балансе — цены надо сначала увидеть', async () => {
     await renderCard(subscription(), 0);
 
-    const renew = await screen.findByText('dashboard.expired.quickRenew');
+    const renew = await screen.findByText('postq.dashboard.resume');
     fireEvent.click(renew);
 
     expect(await screen.findByText('экран выбора периода')).toBeTruthy();
@@ -143,7 +146,7 @@ describe('суточный тариф', () => {
   it('покупает ровно один день: выбирать там нечего', async () => {
     await renderCard(subscription({ is_daily: true, daily_price_kopeks: 2000 }), 500000);
 
-    fireEvent.click(await screen.findByText('dashboard.expired.quickRenew'));
+    fireEvent.click(await screen.findByText('postq.dashboard.resume'));
 
     await waitFor(() => {
       expect(calls.purchaseTariff).toEqual([[7, 1, undefined, 42]]);
@@ -157,7 +160,7 @@ describe('суточный тариф', () => {
       500000,
     );
 
-    fireEvent.click(await screen.findByText('dashboard.suspended.resume'));
+    fireEvent.click(await screen.findByText('postq.dashboard.resume'));
 
     await waitFor(() => {
       expect(calls.togglePause).toEqual([[42]]);
@@ -169,6 +172,6 @@ describe('суточный тариф', () => {
     await renderCard(subscription({ is_daily: true, daily_price_kopeks: 2000 }), 0);
 
     expect(await screen.findByText('dashboard.expired.topUp')).toBeTruthy();
-    expect(screen.queryByText('dashboard.expired.quickRenew')).toBeNull();
+    expect(screen.queryByText('postq.dashboard.resume')).toBeNull();
   });
 });

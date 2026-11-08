@@ -14,9 +14,8 @@ import ruLocale from '@/locales/ru.json';
  * целую карточку с пятью нулями и навсегда серой кнопкой — бот в этом же случае
  * просто не показывает кнопку.
  *
- * Здесь держится, что выключённый вывод не занимает место, но уже поданные
- * заявки остаются видны: деньги в обработке не должны исчезать со страницы
- * вместе с разделом.
+ * В postq вывода нет вовсе (решение продукта): раздела нет при любом ответе
+ * сервера, а приглашение в партнёры не обещает вывод заработка.
  */
 
 function resolveRu(key: string): string | undefined {
@@ -165,7 +164,7 @@ describe('вывод средств выключен', () => {
 
     // Дожидаемся отрисовки страницы, чтобы отсутствие раздела не оказалось
     // просто незагруженной страницей.
-    await screen.findByText(resolveRu('referral.yourLink') ?? 'referral.yourLink');
+    await screen.findByText(resolveRu('referral.shareButton') ?? 'referral.shareButton');
 
     await waitFor(() => {
       expect(screen.queryByText(DISABLED_REASON)).toBeNull();
@@ -173,29 +172,6 @@ describe('вывод средств выключен', () => {
     expect(screen.queryByText(resolveRu('referral.withdrawal.title') as string)).toBeNull();
     expect(screen.queryByText(resolveRu('referral.withdrawal.requestButton') as string)).toBeNull();
     expect(screen.queryByText(resolveRu('referral.withdrawal.history') as string)).toBeNull();
-  });
-
-  it('оставляет на виду заявки, поданные до выключения', async () => {
-    state.withdrawalEnabled = false;
-    state.history = [
-      {
-        id: 1,
-        amount_kopeks: 150000,
-        amount_rubles: 1500,
-        status: 'pending',
-        payment_details: null,
-        admin_comment: null,
-        created_at: '2026-01-01T00:00:00Z',
-        processed_at: null,
-      },
-    ];
-    await renderReferral();
-
-    expect(
-      await screen.findByText(resolveRu('referral.withdrawal.history') as string),
-    ).toBeTruthy();
-    // Нулевая статистика при этом всё равно не показывается — она выдумана сервером.
-    expect(screen.queryByText(resolveRu('referral.withdrawal.available') as string)).toBeNull();
   });
 });
 
@@ -213,21 +189,29 @@ describe('приглашение в партнёры', () => {
     ).toBeNull();
   });
 
-  it('обещает вывод, когда он работает', async () => {
+  // postq: withdrawals are not offered at all, so the pitch never promises them.
+  it('не обещает вывод и когда сервер его разрешает', async () => {
     await renderReferral();
 
     expect(
-      await screen.findByText(resolveRu('referral.partner.becomePartnerDesc') as string),
+      await screen.findByText(
+        resolveRu('referral.partner.becomePartnerDescNoWithdrawal') as string,
+      ),
     ).toBeTruthy();
+    expect(
+      screen.queryByText(resolveRu('referral.partner.becomePartnerDesc') as string),
+    ).toBeNull();
   });
 });
 
-describe('вывод средств включён', () => {
-  it('показывает раздел как прежде', async () => {
+describe('вывод средств включён на сервере', () => {
+  // postq: no withdrawal section — the partner application is the last block.
+  it('раздела вывода всё равно нет', async () => {
     await renderReferral();
 
-    expect(await screen.findByText(resolveRu('referral.withdrawal.title') as string)).toBeTruthy();
-    expect(screen.getByText(resolveRu('referral.withdrawal.requestButton') as string)).toBeTruthy();
-    expect(screen.getByText(resolveRu('referral.withdrawal.history') as string)).toBeTruthy();
+    await screen.findByText(resolveRu('referral.shareButton') ?? 'referral.shareButton');
+    expect(screen.queryByText(resolveRu('referral.withdrawal.title') as string)).toBeNull();
+    expect(screen.queryByText(resolveRu('referral.withdrawal.requestButton') as string)).toBeNull();
+    expect(screen.queryByText(resolveRu('referral.withdrawal.history') as string)).toBeNull();
   });
 });
