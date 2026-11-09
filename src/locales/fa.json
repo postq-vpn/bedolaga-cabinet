@@ -10273,7 +10273,8 @@
       "subscriptionPrice": "Subscription price",
       "fromBalance": "From balance",
       "withBalance": "Balance applied",
-      "paidFromBalance": "Paid from your balance"
+      "paidFromBalance": "Paid from your balance",
+      "renewalDevices": "تمدید، تعداد دستگاه‌های شما را حفظ می‌کند. می‌توانید همین حالا آن را تغییر دهید: دستگاه‌های اضافی تا پایان اشتراک فعلی محاسبه می‌شوند."
     },
     "connection": {
       "subtitle": "Pick your device and app, then follow the steps",
@@ -10321,7 +10322,8 @@
       "payShort": "هدیه دادن",
       "topUpAuto": "روش پرداخت را انتخاب کنید. پس از پرداخت، هدیه به‌طور خودکار صادر می‌شود",
       "autoDone": "پرداخت انجام شد — هدیه آماده است، کد در «هدیه‌های من» است",
-      "autoFailed": "موجودی شارژ شد، اما صدور هدیه ممکن نشد. دوباره تلاش کنید"
+      "autoFailed": "موجودی شارژ شد، اما صدور هدیه ممکن نشد. دوباره تلاش کنید",
+      "stepConfirm": "تأیید"
     },
     "more": {
       "lightTheme": "Light theme",

@@ -45,19 +45,25 @@ export function WizardNav({
   );
 }
 
-/** Progress bars with step titles (tablets and up). Done steps can be reopened. */
+/**
+ * Progress bars with step titles. Done steps can be reopened. Tablets and up
+ * by default; `alwaysVisible` shows it on phones too (a short flow with no
+ * «Назад / Шаг N из M» row above it, the gift).
+ */
 export function WizardProgress({
   titles,
   step,
   onStep,
+  alwaysVisible = false,
 }: {
   titles: string[];
   step: number;
   onStep: (step: number) => void;
+  alwaysVisible?: boolean;
 }) {
   return (
     <ol
-      className="hidden gap-3 sm:grid sm:gap-6"
+      className={cn(alwaysVisible ? 'grid' : 'hidden sm:grid', 'gap-3 sm:gap-6')}
       style={{ gridTemplateColumns: `repeat(${titles.length}, minmax(0, 1fr))` }}
     >
       {titles.map((title, i) => {
@@ -65,7 +71,10 @@ export function WizardProgress({
         const done = n < step;
         const current = n === step;
         return (
-          <li key={title} className="flex min-w-0 flex-col gap-4">
+          <li
+            key={title}
+            className={cn('flex min-w-0 flex-col', alwaysVisible ? 'gap-3' : 'gap-4')}
+          >
             <span
               className={cn(
                 'h-2 w-full rounded-[4px]',
@@ -76,7 +85,11 @@ export function WizardProgress({
               type="button"
               disabled={n > step}
               onClick={() => onStep(n)}
-              className="rd-p-lg flex min-w-0 items-center gap-1 text-left disabled:cursor-default"
+              aria-current={current ? 'step' : undefined}
+              className={cn(
+                alwaysVisible ? 'rd-p-md' : 'rd-p-lg',
+                'flex min-w-0 items-center gap-1 text-left disabled:cursor-default',
+              )}
             >
               {done ? (
                 <RdIcon name="cabinet/check" size={18} className="text-[var(--rd-action)]" />

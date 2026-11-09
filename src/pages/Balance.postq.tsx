@@ -115,7 +115,7 @@ export default function Balance() {
                       disabled={!method.is_available}
                       onClick={() => navigate(`/balance/top-up/${method.id}${forwardQuery}`)}
                       title={method.is_available ? undefined : t('postq.payment.unavailable')}
-                      className="flex min-h-[104px] flex-col justify-between gap-4 rounded-[var(--rd-radius-control)] border border-transparent bg-[var(--rd-field)] p-4 text-left transition-colors hover:border-[var(--rd-border)] focus-visible:border-[var(--rd-action)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-transparent"
+                      className="flex min-h-[104px] flex-col justify-between gap-4 rounded-[var(--rd-radius-control)] border-2 border-transparent bg-[var(--rd-field)] p-4 text-left transition-colors hover:border-[var(--rd-border)] focus-visible:border-[var(--rd-action)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-transparent"
                     >
                       <PaymentMethodGlyph methodId={method.id} size={36} />
                       <span className="rd-p-md text-[var(--rd-heading)]">{name}</span>

@@ -10135,7 +10135,8 @@
       "subscriptionPrice": "Subscription price",
       "fromBalance": "From balance",
       "withBalance": "Balance applied",
-      "paidFromBalance": "Paid from your balance"
+      "paidFromBalance": "Paid from your balance",
+      "renewalDevices": "续订将保留您的设备数量。您现在可以更改：新增设备按当前订阅剩余时间计费。"
     },
     "connection": {
       "subtitle": "Pick your device and app, then follow the steps",
@@ -10183,7 +10184,8 @@
       "payShort": "赠送",
       "topUpAuto": "选择支付方式。付款后礼物将自动生成",
       "autoDone": "付款成功 — 礼物已就绪，兑换码在「我的礼物」中",
-      "autoFailed": "余额已充值，但未能生成礼物。请重试"
+      "autoFailed": "余额已充值，但未能生成礼物。请重试",
+      "stepConfirm": "确认"
     },
     "more": {
       "lightTheme": "Light theme",

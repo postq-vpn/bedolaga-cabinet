@@ -11,6 +11,7 @@ import { pickBestValue } from '@/utils/bestValue';
 import { cn } from '@/lib/utils';
 import type { Tariff, TariffPeriod } from '@/types';
 import { RdIcon } from '../RdIcon';
+import { DevicesDialog } from '../dashboard/DevicesDialog';
 import { TopUpDialog } from '../payment/TopUpDialog';
 import { savePendingPurchase } from './pendingPurchase';
 import {
@@ -86,7 +87,15 @@ export function PurchaseWizard({
   }, [selection, devices, quoteQuery.isPlaceholderData]);
 
   const included = selection?.included_limit ?? tariff.base_device_limit ?? tariff.device_limit;
-  const deviceCount = devices ?? selection?.effective_limit ?? included;
+  // Renewal: the subscription's own limit until the quote says otherwise.
+  const { data: renewing } = useQuery({
+    queryKey: ['subscription', subscriptionId],
+    queryFn: () => subscriptionApi.getSubscription(subscriptionId),
+    enabled: subscriptionId !== undefined,
+    retry: false,
+  });
+  const subscriptionLimit = renewing?.subscription?.device_limit;
+  const deviceCount = devices ?? selection?.effective_limit ?? subscriptionLimit ?? included;
   const minDevices = selection?.min_limit ?? included;
   const maxDevices = selection?.max_limit ?? deviceCount;
   const extraDevicePrice = tariff.device_price_kopeks ?? 0;
@@ -128,6 +137,13 @@ export function PurchaseWizard({
     return attempt.current.id;
   };
   const [topUpOpen, setTopUpOpen] = useState(false);
+  // A paid subscription is renewed with its own device count (the quote says
+  // `existing_paid_subscription`): it changes in the devices dialog, not here.
+  const devicesViaDialog =
+    subscriptionId !== undefined &&
+    (quoteFailed ||
+      (!!selection && !selection.selectable && selection.reason !== 'unlimited_devices'));
+  const [devicesOpen, setDevicesOpen] = useState(false);
   // Leaving to pay: remember the purchase so it's issued when the money lands.
   const rememberPurchase = () =>
     savePendingPurchase({
@@ -358,42 +374,63 @@ export function PurchaseWizard({
                   {t('postq.purchase.changePeriod')}
                 </button>
               </div>
-              <div className="flex flex-col items-center gap-4 py-6">
-                <div className="flex items-center gap-4 sm:gap-8">
-                  <button
-                    type="button"
-                    aria-label={t('postq.devices.less')}
-                    disabled={!selection?.selectable || deviceCount <= minDevices}
-                    onClick={() => setDevices(Math.max(minDevices, deviceCount - 1))}
-                    className="rd-icon-btn size-12 !rounded-[var(--rd-radius-sm)] bg-[var(--rd-field)] text-[24px] leading-none text-[var(--rd-heading)] disabled:opacity-40"
-                  >
-                    −
-                  </button>
+              {devicesViaDialog ? (
+                <div className="flex flex-col items-center gap-4 py-6">
                   <div className="flex min-w-[96px] flex-col items-center">
                     <span className="rd-h3 text-[var(--rd-heading)]">{deviceCount}</span>
                     <span className="rd-p-md text-[var(--rd-caption)]">
                       {t('postq.devices.unit', { count: deviceCount })}
                     </span>
                   </div>
+                  <p className="rd-p-lg text-center text-[var(--rd-body)]">
+                    {t('postq.purchase.renewalDevices')}
+                  </p>
                   <button
                     type="button"
-                    aria-label={t('postq.devices.more')}
-                    disabled={!selection?.selectable || deviceCount >= maxDevices}
-                    onClick={() => setDevices(Math.min(maxDevices, deviceCount + 1))}
-                    className="rd-icon-btn size-12 !rounded-[var(--rd-radius-sm)] bg-[var(--rd-field)] text-[24px] leading-none text-[var(--rd-heading)] disabled:opacity-40"
+                    className="rd-link-action"
+                    onClick={() => setDevicesOpen(true)}
                   >
-                    +
+                    {t('postq.purchase.changeCount')}
                   </button>
                 </div>
-                <p className="rd-p-lg text-center text-[var(--rd-body)]">
-                  {deviceCount <= included
-                    ? t('postq.purchase.includedText', { count: included })
-                    : t('postq.purchase.extraText', {
-                        count: deviceCount - included,
-                        price: money(devicesCost),
-                      })}
-                </p>
-              </div>
+              ) : (
+                <div className="flex flex-col items-center gap-4 py-6">
+                  <div className="flex items-center gap-4 sm:gap-8">
+                    <button
+                      type="button"
+                      aria-label={t('postq.devices.less')}
+                      disabled={!selection?.selectable || deviceCount <= minDevices}
+                      onClick={() => setDevices(Math.max(minDevices, deviceCount - 1))}
+                      className="rd-icon-btn size-12 !rounded-[var(--rd-radius-sm)] bg-[var(--rd-field)] text-[24px] leading-none text-[var(--rd-heading)] disabled:opacity-40"
+                    >
+                      −
+                    </button>
+                    <div className="flex min-w-[96px] flex-col items-center">
+                      <span className="rd-h3 text-[var(--rd-heading)]">{deviceCount}</span>
+                      <span className="rd-p-md text-[var(--rd-caption)]">
+                        {t('postq.devices.unit', { count: deviceCount })}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label={t('postq.devices.more')}
+                      disabled={!selection?.selectable || deviceCount >= maxDevices}
+                      onClick={() => setDevices(Math.min(maxDevices, deviceCount + 1))}
+                      className="rd-icon-btn size-12 !rounded-[var(--rd-radius-sm)] bg-[var(--rd-field)] text-[24px] leading-none text-[var(--rd-heading)] disabled:opacity-40"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <p className="rd-p-lg text-center text-[var(--rd-body)]">
+                    {deviceCount <= included
+                      ? t('postq.purchase.includedText', { count: included })
+                      : t('postq.purchase.extraText', {
+                          count: deviceCount - included,
+                          price: money(devicesCost),
+                        })}
+                  </p>
+                </div>
+              )}
               {extraDevicePrice > 0 && (
                 <>
                   <div className="h-px w-full bg-[var(--rd-border)]" />
@@ -488,6 +525,21 @@ export function PurchaseWizard({
         dim={!quoteReady && !!quote}
         action={cta(true)}
       />
+      {subscriptionId !== undefined && (
+        <DevicesDialog
+          open={devicesOpen}
+          subscriptionId={subscriptionId}
+          onOpenChange={(open) => {
+            setDevicesOpen(open);
+            if (!open) {
+              // The limit may have changed: take it from a fresh quote.
+              setDevices(undefined);
+              queryClient.invalidateQueries({ queryKey: ['tariff-device-quote'] });
+              queryClient.invalidateQueries({ queryKey: ['subscription', subscriptionId] });
+            }
+          }}
+        />
+      )}
       <TopUpDialog
         open={topUpOpen}
         onOpenChange={setTopUpOpen}

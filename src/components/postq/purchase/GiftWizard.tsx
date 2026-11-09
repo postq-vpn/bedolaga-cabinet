@@ -14,7 +14,6 @@ import {
   MobileTotalBar,
   PeriodTile,
   WizardHeading,
-  WizardNav,
   WizardProgress,
 } from './wizardParts';
 
@@ -150,9 +149,11 @@ export function GiftWizard({
 
   return (
     <div className="flex flex-col gap-8">
-      <WizardNav step={step} total={2} onBack={() => setStep(1)} />
+      {/* Under the page tabs a plain «Шаг 1 из 2» looked lost on phones: the
+          stepper itself is shown everywhere, and step 1 in it leads back. */}
       <WizardProgress
-        titles={[t('postq.purchase.step1'), t('postq.gift.step2')]}
+        alwaysVisible
+        titles={[t('postq.purchase.step1'), t('postq.gift.stepConfirm')]}
         step={step}
         onStep={(n) => setStep(n as Step)}
       />

@@ -10264,7 +10264,8 @@
       "subscriptionPrice": "Subscription price",
       "fromBalance": "From balance",
       "withBalance": "Balance applied",
-      "paidFromBalance": "Paid from your balance"
+      "paidFromBalance": "Paid from your balance",
+      "renewalDevices": "Renewal keeps your number of devices. You can change it now: extra devices are paid until the end of the current subscription."
     },
     "connection": {
       "subtitle": "Pick your device and app, then follow the steps",
@@ -10312,7 +10313,8 @@
       "payShort": "Gift",
       "topUpAuto": "Choose a payment method. The gift is issued automatically after payment",
       "autoDone": "Payment received — the gift is ready, the code is in «My gifts»",
-      "autoFailed": "Balance topped up, but the gift couldn't be issued. Please try again"
+      "autoFailed": "Balance topped up, but the gift couldn't be issued. Please try again",
+      "stepConfirm": "Confirmation"
     },
     "more": {
       "lightTheme": "Light theme",
