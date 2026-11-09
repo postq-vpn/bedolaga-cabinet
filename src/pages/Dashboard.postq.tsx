@@ -16,12 +16,10 @@ import SubscriptionCardExpired from '../components/dashboard/SubscriptionCardExp
 import { hasLegacySubscription } from '../utils/legacySubscription';
 import TrialOfferCard from '../components/dashboard/TrialOfferCard';
 import { giftApi } from '../api/gift';
-import { promoApi } from '../api/promo';
 import PendingGiftCard from '../components/dashboard/PendingGiftCard';
 import SubscriptionListCard from '../components/subscription/SubscriptionListCard';
 import { DeviceLimitSheet } from '../components/subscription/DeviceLimitSheet';
 import { API } from '../config/constants';
-import { StarIcon } from '@/components/icons';
 import { Skeleton, SkeletonGroup } from '@/components/ui/skeleton';
 import { safeLocal } from '../utils/safeStorage';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
@@ -126,13 +124,6 @@ export default function Dashboard() {
     queryKey: ['pending-gifts'],
     queryFn: giftApi.getPendingGifts,
     staleTime: 30_000,
-    retry: false,
-  });
-
-  const { data: promoGroupData } = useQuery({
-    queryKey: ['promo-group-discounts'],
-    queryFn: promoApi.getGroupDiscounts,
-    staleTime: 60_000,
     retry: false,
   });
 
@@ -425,12 +416,6 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-6 lg:gap-8">
       <h1 className="sr-only">{t('nav.dashboard')}</h1>
-      {promoGroupData?.group_name && (
-        <span className="rd-p-sm inline-flex max-w-[240px] items-center gap-1 self-start rounded-full bg-[var(--rd-help)] px-3 py-1 text-[var(--rd-on-soft)]">
-          <StarIcon filled className="h-3 w-3 shrink-0" />
-          <span className="truncate">{promoGroupData.group_name}</span>
-        </span>
-      )}
 
       {pendingGifts && pendingGifts.length > 0 && <PendingGiftCard gifts={pendingGifts} />}
 
