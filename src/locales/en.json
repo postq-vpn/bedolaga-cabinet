@@ -10304,7 +10304,16 @@
       "statusActivated": "Activated",
       "statusReceived": "Received",
       "emptyAction": "Give a subscription",
-      "shareCopied": "Message with the link copied"
+      "shareCopied": "Message with the link copied",
+      "step2": "Gift confirmation",
+      "step1Text": "Choose how long the gifted subscription lasts",
+      "step2Text": "Check the gift before paying. The code for the recipient will appear in «My gifts»",
+      "devicesNote": "The gift includes {{devices}}",
+      "pay": "Gift for {{amount}}",
+      "payShort": "Gift",
+      "topUpAuto": "Choose a payment method. The gift is issued automatically after payment",
+      "autoDone": "Payment received — the gift is ready, the code is in «My gifts»",
+      "autoFailed": "Balance topped up, but the gift couldn't be issued. Please try again"
     },
     "more": {
       "lightTheme": "Light theme",

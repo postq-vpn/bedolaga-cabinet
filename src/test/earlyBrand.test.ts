@@ -122,7 +122,7 @@ describe('ранний бренд из index.html', () => {
     });
   });
 
-  it('подсказку прошлого визита применяет синхронно, включая PNG-иконку', async () => {
+  it('подсказку прошлого визита применяет синхронно, иконку из неё не берёт', async () => {
     const icon = 'data:image/png;base64,hint';
     localStorage.setItem(
       'cabinet-brand-hint',
@@ -132,11 +132,12 @@ describe('ранний бренд из index.html', () => {
 
     runScript();
     expect(document.title).toBe('ZeroPing');
-    expect(iconHref()).toBe(icon);
+    // Иконка — статичный знак postq из index.html.
+    expect(iconHref()).toBe(STATIC_ICON);
 
     await settle();
     expect(document.title).toBe('ZeroPing VPN');
-    expect(iconHref()).toBe(icon);
+    expect(iconHref()).toBe(STATIC_ICON);
     expect(JSON.parse(localStorage.getItem('cabinet-brand-hint') ?? 'null').icon).toBe(icon);
   });
 

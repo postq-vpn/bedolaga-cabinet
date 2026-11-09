@@ -155,7 +155,7 @@ describe('подарок: выбранные по умолчанию тариф 
       tariff({ id: 2, name: 'Годовой', is_highlighted: true, periods: [period(30)] }),
     ]);
     await renderGift();
-    await screen.findByText('Годовой');
+    await screen.findAllByText('Годовой');
 
     await waitFor(() => expect(tariffCard('Годовой').getAttribute('aria-checked')).toBe('true'));
     expect(tariffCard('Базовый').getAttribute('aria-checked')).toBe('false');
@@ -178,7 +178,7 @@ describe('подарок: выбранные по умолчанию тариф 
       tariff({ id: 2, name: 'Годовой', is_highlighted: true, periods: [period(30)] }),
     ]);
     await renderGift();
-    await screen.findByText('Годовой');
+    await screen.findAllByText('Годовой');
 
     expect(screen.queryByText(ru('subscription.bestValue'))).toBeNull();
   });
@@ -189,7 +189,7 @@ describe('подарок: выбранные по умолчанию тариф 
       tariff({ id: 2, name: 'Премиум', periods: [period(30), period(180, true)] }),
     ]);
     await renderGift();
-    await screen.findByText('Премиум');
+    await screen.findAllByText('Премиум');
     expect(periodCard('1 месяц').getAttribute('aria-checked')).toBe('true');
 
     fireEvent.click(tariffCard('Премиум'));
@@ -204,7 +204,7 @@ describe('подарок: выбранные по умолчанию тариф 
       tariff({ id: 2, name: 'Премиум', periods: [period(30), period(180)] }),
     ]);
     await renderGift();
-    await screen.findByText('Базовый');
+    await screen.findAllByText('Базовый');
 
     fireEvent.click(periodCard('1 месяц'));
 
@@ -218,7 +218,7 @@ describe('подарок: выбранные по умолчанию тариф 
       tariff({ id: 2, name: 'Годовой', periods: [period(30)] }),
     ]);
     await renderGift();
-    await screen.findByText('Базовый');
+    await screen.findAllByText('Базовый');
 
     expect(tariffCard('Базовый').getAttribute('aria-checked')).toBe('true');
     expect(periodCard('1 месяц').getAttribute('aria-checked')).toBe('true');

@@ -104,7 +104,7 @@ async function renderBranding() {
 }
 
 describe('DocumentBranding', () => {
-  it('ставит заголовок, имя приложения, фавикон и манифест из брендинга', async () => {
+  it('ставит заголовок и имя приложения из брендинга, иконки не трогает', async () => {
     await renderBranding();
 
     await waitFor(() => expect(document.title).toBe('ZeroPing'));
@@ -115,23 +115,12 @@ describe('DocumentBranding', () => {
       document.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute('content'),
     ).toBe('ZeroPing');
 
-    await waitFor(() => {
-      const href = document.querySelector('link[rel="icon"]')?.getAttribute('href') ?? '';
-      // Монограмма буквы Z в цвете акцента инсталляции, а не статический «V».
-      expect(decodeURIComponent(href)).toContain('>Z</text>');
-      expect(decodeURIComponent(href)).toContain('fill="#22c55e"');
-    });
+    // Иконки — статичный знак postq из index.html: хук их не трогает.
+    await waitFor(() => expect(localStorage.getItem(STORAGE_KEYS.BRAND_HINT)).not.toBeNull());
+    expect(document.querySelector('link[rel="icon"]')?.getAttribute('href')).toBe(STATIC_ICON);
+    expect(document.querySelector('link[rel="manifest"]')).toBeNull();
 
-    const manifestHref = document.querySelector('link[rel="manifest"]')?.getAttribute('href') ?? '';
-    const manifest = JSON.parse(
-      decodeURIComponent(manifestHref.slice(manifestHref.indexOf(',') + 1)),
-    );
-    expect(manifest.name).toBe('ZeroPing');
-    expect(manifest.icons.length).toBeGreaterThan(0);
-
-    // Подсказка для следующей первой отрисовки записана, но без SVG: Safari
-    // ставит иконку из подсказки при загрузке и рисует SVG белой плиткой.
-    // Без canvas (jsdom) растровой монограммы нет — подсказка без иконки.
+    // Подсказка для следующей первой отрисовки — только имя и буква.
     const hint = JSON.parse(localStorage.getItem(STORAGE_KEYS.BRAND_HINT) ?? 'null');
     expect(hint).toEqual({ name: 'ZeroPing', letter: 'Z' });
   });
@@ -150,26 +139,7 @@ describe('DocumentBranding', () => {
     expect(links[0].getAttribute('href')).toBe(manifestUrl);
   });
 
-  it('вкладке — плитка как в шапке, подсказке для Safari — с меньшим скруглением', async () => {
-    // Safari в тёмной теме подрисовывает иконке с прозрачными углами белую
-    // плитку-подложку, если скругление заметное: при 0,16 стороны и больше
-    // подложка есть, при 0,12 — нет (Safari 26.6, замерено). Chrome ставит
-    // иконку из React и подсказку видит доли секунды, Safari — только подсказку.
-    canvasMode.enabled = true;
-    backend.branding = WITH_LOGO;
-    backend.blobUrl = 'blob:logo';
-    await renderBranding();
-
-    await waitFor(() =>
-      expect(document.querySelector('link[rel="icon"]')?.getAttribute('href')).toBe(
-        'data:image/png;base64,r0.3',
-      ),
-    );
-    const hint = JSON.parse(localStorage.getItem(STORAGE_KEYS.BRAND_HINT) ?? 'null');
-    expect(hint.icon).toBe('data:image/png;base64,r0.12');
-  });
-
-  it('с логотипом, но без растровой иконки, оставляет ссылку на бота и подсказку без иконки', async () => {
+  it('с логотипом из админки иконку всё равно не подменяет', async () => {
     // Логотип есть, а скруглить его в PNG не вышло (нет canvas, blob отозван,
     // картинка не загрузилась). Раньше вкладка получала SVG-монограмму, и она же
     // уходила в подсказку — Safari у пользователя с логотипом навсегда оставался

@@ -16,14 +16,20 @@ import {
  * а монограмма из сборки в Safari оставалась навсегда, потому что Safari не
  * замечает смену фавикона через JS.
  */
+const ICON_HTML = [
+  `<link rel="icon" href="${BRANDING_PLACEHOLDERS.icon}" />`,
+  `<link rel="manifest" href="${BRANDING_PLACEHOLDERS.manifest}" />`,
+].join('\n');
+
 describe('brandingHtml', () => {
-  it('index.html содержит плейсхолдеры имени, иконки и адреса API', () => {
+  it('index.html содержит плейсхолдеры имени и адреса API, иконки — статичный знак postq', () => {
     expect(htmlSource).toContain(`<title>${BRANDING_PLACEHOLDERS.name}</title>`);
     expect(htmlSource).toContain(`content="${BRANDING_PLACEHOLDERS.name}"`);
-    expect(htmlSource).toContain(`href="${BRANDING_PLACEHOLDERS.icon}"`);
+    expect(htmlSource).toContain('href="/brand/favicon-64.png"');
     expect(htmlSource).toContain(
-      `<link rel="manifest" href="${BRANDING_PLACEHOLDERS.manifest}" />`,
+      '<link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />',
     );
+    expect(htmlSource).toContain('<link rel="manifest" href="/brand/manifest.webmanifest" />');
     expect(htmlSource).toContain(`var API = '${BRANDING_PLACEHOLDERS.apiUrl}';`);
     // Значения из сборки не должны оставаться в разметке буквально.
     expect(htmlSource).not.toContain('<title>VPN</title>');
@@ -40,10 +46,12 @@ describe('brandingHtml', () => {
     expect(html).toContain(`<title>${DEFAULT_APP_NAME}</title>`);
   });
 
+  // postq ставит в index.html статичные иконки (public/brand), но плагин по-прежнему
+  // умеет подставлять ссылки на бота — проверяем его на разметке с плейсхолдерами.
   // Safari берёт фавикон только при загрузке страницы: ссылка обязана сразу вести
   // на эндпоинт бота, который отдаёт логотип из админки или монограмму.
   it('фавикон — ссылка на /cabinet/branding/favicon у бота, а не data: URI сборки', () => {
-    const html = renderBrandingHtml(htmlSource, { name: 'ZeroPing' });
+    const html = renderBrandingHtml(ICON_HTML, { name: 'ZeroPing' });
     expect(html).toContain(`<link rel="icon" href="${DEFAULT_API_URL}${FAVICON_PATH}" />`);
     expect(html).not.toContain(BRANDING_PLACEHOLDERS.icon);
     expect(html).not.toContain('href="data:image/svg+xml');
@@ -52,7 +60,7 @@ describe('brandingHtml', () => {
   // Адрес логотипа фавикону давать нельзя: запрос иконки идёт без Origin, и его
   // ответ без CORS-заголовков из кеша ломает fetch() логотипа в React.
   it('фавикон никогда не ведёт на /cabinet/branding/logo', () => {
-    const html = renderBrandingHtml(htmlSource, {
+    const html = renderBrandingHtml(ICON_HTML, {
       name: 'ZeroPing',
       apiUrl: 'https://api.example',
     });
@@ -65,18 +73,18 @@ describe('brandingHtml', () => {
   // Chrome на Android собирает приложение на серверах Google: манифест и иконки
   // им нужны по адресам. Из data: URI вместо приложения ставился ярлык во вкладке.
   it('манифест — ссылка на /cabinet/branding/manifest.webmanifest у бота', () => {
-    const html = renderBrandingHtml(htmlSource, { name: 'ZeroPing' });
+    const html = renderBrandingHtml(ICON_HTML, { name: 'ZeroPing' });
     expect(html).toContain(`<link rel="manifest" href="${DEFAULT_API_URL}${MANIFEST_PATH}" />`);
     expect(html).not.toContain(BRANDING_PLACEHOLDERS.manifest);
 
-    const external = renderBrandingHtml(htmlSource, { name: 'X', apiUrl: 'https://api.example/' });
+    const external = renderBrandingHtml(ICON_HTML, { name: 'X', apiUrl: 'https://api.example/' });
     expect(external).toContain(
       '<link rel="manifest" href="https://api.example/cabinet/branding/manifest.webmanifest" />',
     );
   });
 
   it('внешний адрес API с хвостовым слэшем даёт чистую ссылку', () => {
-    const html = renderBrandingHtml(htmlSource, { name: 'X', apiUrl: 'https://api.example/' });
+    const html = renderBrandingHtml(ICON_HTML, { name: 'X', apiUrl: 'https://api.example/' });
     expect(html).toContain('href="https://api.example/cabinet/branding/favicon"');
   });
 

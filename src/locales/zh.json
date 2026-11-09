@@ -10175,7 +10175,16 @@
       "statusActivated": "Activated",
       "statusReceived": "Received",
       "emptyAction": "Give a subscription",
-      "shareCopied": "Message with the link copied"
+      "shareCopied": "Message with the link copied",
+      "step2": "确认礼物",
+      "step1Text": "选择赠送订阅的期限",
+      "step2Text": "付款前请检查礼物。收礼人的兑换码将显示在「我的礼物」中",
+      "devicesNote": "礼物包含 {{devices}}",
+      "pay": "赠送 {{amount}}",
+      "payShort": "赠送",
+      "topUpAuto": "选择支付方式。付款后礼物将自动生成",
+      "autoDone": "付款成功 — 礼物已就绪，兑换码在「我的礼物」中",
+      "autoFailed": "余额已充值，但未能生成礼物。请重试"
     },
     "more": {
       "lightTheme": "Light theme",

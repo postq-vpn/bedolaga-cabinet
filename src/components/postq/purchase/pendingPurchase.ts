@@ -41,3 +41,36 @@ export function loadPendingPurchase(): PendingPurchase | null {
 export function clearPendingPurchase() {
   safeLocal.removeItem(KEY);
 }
+
+/**
+ * A gift bought the same way: saved before leaving to top up, bought from the
+ * balance by usePendingPurchase() once the money lands. The gift API has no
+ * idempotency key, so the intent is dropped before the purchase is sent.
+ */
+export interface PendingGift {
+  tariffId: number;
+  days: number;
+  totalKopeks: number;
+  createdAt: number;
+}
+
+const GIFT_KEY = 'postq-pending-gift';
+
+export function savePendingGift(g: PendingGift) {
+  safeLocal.setJson(GIFT_KEY, g);
+  window.dispatchEvent(new Event(PENDING_PURCHASE_EVENT));
+}
+
+export function loadPendingGift(): PendingGift | null {
+  const g = safeLocal.getJson<PendingGift | null>(GIFT_KEY, null);
+  if (!g || typeof g.tariffId !== 'number' || typeof g.days !== 'number') return null;
+  if (Date.now() - g.createdAt > PENDING_PURCHASE_TTL_MS) {
+    clearPendingGift();
+    return null;
+  }
+  return g;
+}
+
+export function clearPendingGift() {
+  safeLocal.removeItem(GIFT_KEY);
+}

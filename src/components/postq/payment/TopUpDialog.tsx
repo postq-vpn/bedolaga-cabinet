@@ -26,11 +26,14 @@ export function TopUpDialog({
   onOpenChange,
   amountKopeks,
   onBeforePay,
+  autoText,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   amountKopeks: number;
   onBeforePay?: () => void | Promise<void>;
+  /** Subtitle when something completes after the payment (default: the subscription). */
+  autoText?: string;
 }) {
   const { t } = useTranslation();
   const { formatAmount, currencySymbol } = useCurrency();
@@ -97,7 +100,9 @@ export function TopUpDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={t('postq.topUp.title', { amount: money(amount) })}
-      description={onBeforePay ? t('postq.topUp.subtitleAuto') : t('postq.topUp.subtitle')}
+      description={
+        onBeforePay ? (autoText ?? t('postq.topUp.subtitleAuto')) : t('postq.topUp.subtitle')
+      }
     >
       {qr ? (
         <div className="flex flex-col items-center gap-4">

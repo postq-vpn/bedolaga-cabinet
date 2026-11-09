@@ -2,8 +2,12 @@
 <html lang="ru" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="__APP_ICON__" />
-    <link rel="manifest" href="__APP_MANIFEST__" />
+    <!-- Иконки postq — статикой из public/brand, а не с эндпоинта бота: знак
+         один на все установки, и Safari видит его с первой загрузки. -->
+    <link rel="icon" type="image/png" sizes="64x64" href="/brand/favicon-64.png" />
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg" />
+    <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+    <link rel="manifest" href="/brand/manifest.webmanifest" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
@@ -74,7 +78,7 @@
         color-scheme: light;
       }
     </style>
-    <link rel="stylesheet" href="/custom.css" />
+    <link rel="stylesheet" href="/custom.css?v=2" />
     <script>
       // Тема ДО первой отрисовки. useTheme вешает класс в useEffect, то есть уже
       // после неё, а тут зашиты class="dark" и тёмный фон — пользователь светлой
@@ -185,15 +189,7 @@
       // установки. React, когда доберётся, поставит data-brand-ready на <html> —
       // после этого мы уже ничего не трогаем.
       //
-      // Фавикон здесь НЕ трогаем: <link rel="icon"> выше ведёт на
-      // /cabinet/branding/favicon у бота — Safari берёт иконку только при
-      // загрузке страницы и не замечает смену через JS. И ни в коем случае не
-      // на /cabinet/branding/logo: запрос фавикона идёт без Origin, его ответ
-      // без CORS-заголовков ложится в кеш, и fetch() логотипа из React получает
-      // из кеша копию без Access-Control-Allow-Origin. Подсказка прошлого визита
-      // (PNG data: URI) — единственное исключение: сети в ней нет. SVG из
-      // подсказки не берём: Safari рисует SVG-фавикон монохромной плиткой с
-      // буквой, и подменив ссылку, мы лишили бы его логотипа с эндпоинта бота.
+      // Иконки здесь не трогаем: это статичный знак postq из public/brand.
       // __API_URL__ подставляет vite-plugins/brandingHtml из VITE_API_URL.
       (function () {
         var API = '__API_URL__';
@@ -206,10 +202,6 @@
           );
           for (var i = 0; i < metas.length; i++) metas[i].setAttribute('content', name);
         }
-        function setIcon(href) {
-          var icon = document.querySelector('link[rel="icon"]');
-          if (icon) icon.setAttribute('href', href);
-        }
         function firstLetter(value, fallback) {
           var ch = (value || '').replace(/^\s+/, '').charAt(0).toUpperCase();
           return ch || fallback;
@@ -219,9 +211,6 @@
         try {
           hint = JSON.parse(localStorage.getItem(HINT_KEY) || 'null');
           if (hint && typeof hint.name === 'string' && hint.name.trim()) applyName(hint.name.trim());
-          if (hint && typeof hint.icon === 'string' && hint.icon.indexOf('data:image/png;') === 0) {
-            setIcon(hint.icon);
-          }
         } catch (e) {
           // Хранилище заблокировано или подсказка битая — остаются значения сборки.
           hint = null;
@@ -332,6 +321,8 @@
     </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script src="/postq-custom.js"></script>
+    <!-- ?v= — Telegram's WebView keeps old copies of this server-side script
+         (an old version injected a «← На главную» bar); bump to force a fresh one. -->
+    <script src="/postq-custom.js?v=2"></script>
   </body>
 </html>

@@ -3,13 +3,16 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { balanceApi } from '@/api/balance';
+import { giftApi } from '@/api/gift';
 import { subscriptionApi } from '@/api/subscription';
 import { useToast } from '@/components/Toast';
 import { useAuthStore } from '@/store/auth';
 import { getInsufficientBalanceError } from '@/utils/subscriptionHelpers';
 import {
   PENDING_PURCHASE_EVENT,
+  clearPendingGift,
   clearPendingPurchase,
+  loadPendingGift,
   loadPendingPurchase,
 } from './pendingPurchase';
 
@@ -43,7 +46,7 @@ export function usePendingPurchase() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: revision restarts polling after a new intent is saved
   useEffect(() => {
-    if (!isAuthenticated || !loadPendingPurchase()) return;
+    if (!isAuthenticated || (!loadPendingPurchase() && !loadPendingGift())) return;
     const startedAt = Date.now();
     let timer: ReturnType<typeof setTimeout> | undefined;
     let stopped = false;
@@ -53,16 +56,57 @@ export function usePendingPurchase() {
     };
     const tick = async () => {
       const pending = loadPendingPurchase();
-      if (stopped || !pending) return;
+      const gift = loadPendingGift();
+      if (stopped || (!pending && !gift)) return;
       if (busy.current) {
         schedule();
         return;
       }
       busy.current = true;
       const { navigate, queryClient, showToast, t } = deps.current;
+      const finish = () => {
+        clearPendingPurchase();
+        for (const key of ['subscription', 'subscriptions-list', 'balance', 'purchase-options']) {
+          queryClient.invalidateQueries({ queryKey: [key] });
+        }
+        showToast({ type: 'success', message: t('postq.purchase.autoDone') });
+        navigate('/', { replace: true });
+      };
       try {
         const balance = await balanceApi.getBalance();
-        if (balance.balance_kopeks >= pending.totalKopeks) {
+        if (gift && balance.balance_kopeks >= gift.totalKopeks) {
+          // Dropped first: a second tab must not buy the same gift again.
+          clearPendingGift();
+          try {
+            await giftApi.createPurchase({
+              tariff_id: gift.tariffId,
+              period_days: gift.days,
+              payment_mode: 'balance',
+            });
+            for (const key of ['balance', 'gift-config', 'gift-sent']) {
+              queryClient.invalidateQueries({ queryKey: [key] });
+            }
+            showToast({ type: 'success', message: t('postq.gift.autoDone') });
+            navigate('/gift?tab=myGifts', { replace: true });
+          } catch {
+            showToast({ type: 'error', message: t('postq.gift.autoFailed') });
+          }
+          if (!pending) return;
+        }
+        if (pending && balance.balance_kopeks >= pending.totalKopeks) {
+          // No device selection to bind — buy straight away; the price is
+          // re-checked server-side. (Renewals can get here without a quote.)
+          if (pending.devices === undefined) {
+            await subscriptionApi.purchaseTariff(
+              pending.tariffId,
+              pending.days,
+              undefined,
+              pending.subscriptionId,
+              pending.checkoutId,
+            );
+            finish();
+            return;
+          }
           // Fresh quote for the device selection; the price is re-checked server-side.
           const quote = await subscriptionApi.previewTariffPurchase({
             tariff_id: pending.tariffId,
@@ -81,17 +125,7 @@ export function usePendingPurchase() {
                 ? { selected_device_limit: pending.devices, quote_id: quote.quote_id }
                 : undefined,
             );
-            clearPendingPurchase();
-            for (const key of [
-              'subscription',
-              'subscriptions-list',
-              'balance',
-              'purchase-options',
-            ]) {
-              queryClient.invalidateQueries({ queryKey: [key] });
-            }
-            showToast({ type: 'success', message: t('postq.purchase.autoDone') });
-            navigate('/', { replace: true });
+            finish();
             return;
           }
         }

@@ -10313,7 +10313,16 @@
       "statusActivated": "Activated",
       "statusReceived": "Received",
       "emptyAction": "Give a subscription",
-      "shareCopied": "Message with the link copied"
+      "shareCopied": "Message with the link copied",
+      "step2": "تأیید هدیه",
+      "step1Text": "مدت اشتراک هدیه را انتخاب کنید",
+      "step2Text": "قبل از پرداخت هدیه را بررسی کنید. کد گیرنده در «هدیه‌های من» نمایش داده می‌شود",
+      "devicesNote": "این هدیه شامل {{devices}} است",
+      "pay": "هدیه به مبلغ {{amount}}",
+      "payShort": "هدیه دادن",
+      "topUpAuto": "روش پرداخت را انتخاب کنید. پس از پرداخت، هدیه به‌طور خودکار صادر می‌شود",
+      "autoDone": "پرداخت انجام شد — هدیه آماده است، کد در «هدیه‌های من» است",
+      "autoFailed": "موجودی شارژ شد، اما صدور هدیه ممکن نشد. دوباره تلاش کنید"
     },
     "more": {
       "lightTheme": "Light theme",

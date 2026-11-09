@@ -80,12 +80,17 @@ export function DevicesDialog({
     1,
     reductionQuery.data?.available ? reductionQuery.data.min_device_limit : currentLimit,
   );
-  const maxLimit =
-    firstPrice.data?.available && firstPrice.data.max_device_limit
+  // No max_device_limit means the tariff has no cap (same as the legacy sheet):
+  // the server checks the amount on purchase. can_add is a cap only when > 0 —
+  // without a cap the backend leaves it out or sends 0, which used to lock «+».
+  const canAdd = firstPrice.data?.can_add ?? 0;
+  const maxLimit = !firstPrice.data?.available
+    ? currentLimit
+    : firstPrice.data.max_device_limit
       ? firstPrice.data.max_device_limit
-      : firstPrice.data?.available
-        ? currentLimit + (firstPrice.data.can_add ?? 0)
-        : currentLimit;
+      : canAdd > 0
+        ? currentLimit + canAdd
+        : Number.POSITIVE_INFINITY;
 
   const refresh = () => {
     for (const key of [
