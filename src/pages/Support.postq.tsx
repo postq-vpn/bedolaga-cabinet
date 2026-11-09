@@ -22,7 +22,6 @@ import { RdIcon } from '@/components/postq/RdIcon';
 import { UserAvatar } from '@/components/postq/UserAvatar';
 import { RdImg } from '@/components/postq/RdImg';
 import { SUPPORT_BOT_URL } from '@/components/postq/links';
-import { IconCard } from '@/components/postq/ui';
 import { useChatFocus } from '@/components/postq/chatFocus';
 import { useVirtualKeyboard } from '@/hooks/useVirtualKeyboard';
 import { useVisualViewportHeight } from '@/hooks/useVisualViewportHeight';
@@ -483,32 +482,47 @@ export default function Support() {
         // Phones: the user's own tickets come first, the Telegram shortcut
         // after them; on desktop it stays above the two columns.
         <div className="order-last lg:order-none">
-          <IconCard
-            tone="telegram"
-            icon={<img src="/redesign/auth/telegram.svg" alt="" width={24} height={20} />}
-            title={t('postq.support.telegramTitle')}
-            text={t('postq.support.telegramText')}
-            action={
-              supportConfig && telegramContact ? (
-                <button
-                  type="button"
-                  onClick={() => openSupportContact(supportConfig)}
-                  className="rd-btn-soft w-full shrink-0 sm:w-auto"
-                >
-                  {t('postq.support.writeTo', { name: supportConfig.support_username })}
-                </button>
-              ) : (
-                <a
-                  href={SUPPORT_BOT_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rd-btn-soft w-full shrink-0 sm:w-auto"
-                >
-                  {t('postq.support.writeTo', { name: '@postq_vpn_support_bot' })}
-                </a>
-              )
-            }
-          />
+          {/* The 3D plane, cropped by the card edge like the dashboard's gift:
+              the right edge on phones, the bottom-left corner from `sm`. */}
+          <section className="rd-card relative flex flex-col gap-6 overflow-hidden sm:flex-row sm:items-center sm:pl-32">
+            <img
+              src="/redesign/cabinet/telegram-3d.webp"
+              alt=""
+              aria-hidden
+              width={128}
+              height={116}
+              draggable={false}
+              decoding="async"
+              className="pointer-events-none absolute top-4 -right-6 w-32 rotate-[8deg] select-none sm:top-auto sm:right-auto sm:-bottom-4 sm:-left-4 sm:w-28 sm:-rotate-[8deg]"
+            />
+            {/* Phones: tall enough that the button starts below the plane. */}
+            <div className="relative flex min-h-28 min-w-0 flex-1 flex-col gap-2 pr-24 sm:min-h-0 sm:pr-0">
+              <h2 className="text-balance text-[20px] font-bold leading-6 text-[var(--rd-heading)]">
+                {t('postq.support.telegramTitle')}
+              </h2>
+              <p className="rd-p-md text-balance text-[var(--rd-caption)]">
+                {t('postq.support.telegramText')}
+              </p>
+            </div>
+            {supportConfig && telegramContact ? (
+              <button
+                type="button"
+                onClick={() => openSupportContact(supportConfig)}
+                className="rd-btn-soft relative w-full shrink-0 sm:w-auto"
+              >
+                {t('postq.support.writeTo', { name: supportConfig.support_username })}
+              </button>
+            ) : (
+              <a
+                href={SUPPORT_BOT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rd-btn-soft relative w-full shrink-0 sm:w-auto"
+              >
+                {t('postq.support.writeTo', { name: '@postq_vpn_support_bot' })}
+              </a>
+            )}
+          </section>
         </div>
       ) : null}
 
