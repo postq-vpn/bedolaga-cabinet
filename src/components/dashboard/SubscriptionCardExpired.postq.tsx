@@ -228,11 +228,6 @@ export default function SubscriptionCardExpired({
         <div className="grid grid-cols-2 gap-3 sm:flex sm:gap-6">
           <StatTile
             label={t('postq.dashboard.devices')}
-            aside={
-              <span className="rd-p-sm text-[var(--rd-caption)]">
-                {t('postq.dashboard.devicesSaved')}
-              </span>
-            }
             value={
               deviceLimit > 0
                 ? t('postq.dashboard.devicesOf', { used: connectedDevices, limit: deviceLimit })

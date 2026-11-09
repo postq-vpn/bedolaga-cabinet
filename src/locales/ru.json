@@ -10195,7 +10195,6 @@
       "devices": "Устройства",
       "devicesChange": "Изменить",
       "devicesOf": "{{used}} из {{limit}}",
-      "devicesSaved": "Сохранены",
       "traffic": "Трафик",
       "trafficUnlimited": "Безлимитный",
       "trafficOf": "{{used}} из {{limit}}",

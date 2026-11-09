@@ -9942,7 +9942,6 @@
       "devices": "Devices",
       "devicesChange": "Change",
       "devicesOf": "{{used}} of {{limit}}",
-      "devicesSaved": "Saved",
       "traffic": "Traffic",
       "trafficUnlimited": "Unlimited",
       "trafficOf": "{{used}} of {{limit}}",
