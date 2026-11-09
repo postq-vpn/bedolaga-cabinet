@@ -10320,10 +10320,6 @@
       "lightTheme": "Light theme",
       "darkTheme": "Dark theme"
     },
-    "design": {
-      "title": "New cabinet design",
-      "hint": "Only admins see it, and only in this browser. Users stay on the current design for now."
-    },
     "info": {
       "title": "Documents and help",
       "faq": "FAQ",

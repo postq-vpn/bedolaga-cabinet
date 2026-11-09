@@ -248,17 +248,11 @@
   <body>
     <script>
       // Прелоадер postq до загрузки бандла (тот же логотип, что на postq-site и
-      // в src/components/postq/Preloader.tsx). Только в браузерах, где включён
-      // новый дизайн (ключ postq-design, см. src/design/postqDesign.ts).
+      // в src/components/postq/Preloader.tsx).
       // Проявляется через 300 мс — быстрая загрузка его не покажет. Снимает его
       // React (src/components/postq/bootPreloader.ts), когда кабинет отрисовал
       // контент; страховка — таймаут, чтобы упавший бандл не держал его вечно.
       (function () {
-        try {
-          if (localStorage.getItem('postq-design') !== '1') return;
-        } catch (e) {
-          return;
-        }
         // Шрифты postq браузер нашёл бы только после разбора CSS — просим сразу.
         ['regular', 'medium', 'bold'].forEach(function (w) {
           var l = document.createElement('link');

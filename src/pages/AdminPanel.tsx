@@ -1,4 +1,3 @@
-import { PostqDesignToggle } from '@/design/PostqDesignToggle';
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -795,9 +794,6 @@ export default function AdminPanel() {
             </kbd>
           </div>
         </div>
-
-        {/* postq redesign switch — admins only, this browser only. */}
-        <PostqDesignToggle />
 
         {/* Grid */}
         <div className="scrollbar-hide min-h-0 flex-1 overflow-auto pb-4">
