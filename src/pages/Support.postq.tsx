@@ -24,6 +24,8 @@ import { RdImg } from '@/components/postq/RdImg';
 import { SUPPORT_BOT_URL } from '@/components/postq/links';
 import { IconCard } from '@/components/postq/ui';
 import { useChatFocus } from '@/components/postq/chatFocus';
+import { useVirtualKeyboard } from '@/hooks/useVirtualKeyboard';
+import { useVisualViewportHeight } from '@/hooks/useVisualViewportHeight';
 import { Skeleton, SkeletonGroup } from '@/components/ui/skeleton';
 
 const log = logger.createLogger('Support');
@@ -145,6 +147,10 @@ export default function Support() {
   // Phones: the list first, a ticket opens over it (with a way back).
   const detailOpen = !!selectedTicket || showCreateForm;
   const listHidden = !isDesktop && detailOpen;
+  // Phones: with the keyboard open the chat fits the visible part of the screen
+  // (Telegram on iOS lays the keyboard over the page without shrinking dvh).
+  const keyboardOpen = useVirtualKeyboard();
+  const visibleHeight = useVisualViewportHeight();
   // Phones: an open ticket is a conversation — the app chrome steps away.
   const setChatFocus = useChatFocus((st) => st.setChatFocus);
   useEffect(() => {
@@ -178,6 +184,19 @@ export default function Support() {
       if (el) el.scrollTop = el.scrollHeight;
     });
   }, [lastMessageId]);
+
+  // Phones, keyboard opened or closed: iOS scrolls the page to the focused field —
+  // put the chat back at the top (it now fits above the keyboard) and keep the
+  // latest message in view.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyboard and viewport changes are the triggers
+  useEffect(() => {
+    if (!listHidden) return;
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0 });
+      const el = messagesRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    });
+  }, [keyboardOpen, visibleHeight, listHidden]);
 
   // The reply box grows line by line (the whole composer up to half the screen, then it scrolls
   // inside); the history shrinks above it and stays pinned to the latest message.
@@ -592,7 +611,10 @@ export default function Support() {
             listHidden && selectedTicket
               ? {
                   height:
-                    'calc(100dvh - var(--rd-top-inset, 0px) - 32px - var(--mobile-nav-offset))',
+                    keyboardOpen && visibleHeight
+                      ? // The bottom nav hides under the keyboard — only the top inset counts.
+                        `calc(${visibleHeight}px - var(--rd-top-inset, 0px) - 32px)`
+                      : 'calc(100dvh - var(--rd-top-inset, 0px) - 32px - var(--mobile-nav-offset))',
                 }
               : undefined
           }
