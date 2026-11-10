@@ -1,27 +1,18 @@
 /**
- * Global success notification modal.
- * Shows prominent success messages for balance top-ups and subscription purchases.
+ * Global success notification modal: balance top-ups, subscription and add-on
+ * purchases. Postq dialog — flat card, plain rows, one primary action.
  */
 
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { uiLocale } from '@/utils/uiLocale';
 import { formatDateOrRaw } from '@/utils/format';
-import { useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useSuccessNotification } from '../store/successNotification';
 import { useCurrency } from '../hooks/useCurrency';
-import { useTelegramSDK } from '../hooks/useTelegramSDK';
-import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useHaptic } from '@/platform';
-import {
-  CheckCircleIcon,
-  CloseIcon,
-  DevicesIcon,
-  RocketIcon,
-  TrafficIcon,
-  WalletIcon,
-} from '@/components/icons';
+import { RdIcon } from '@/components/postq/RdIcon';
 
 export default function SuccessNotificationModal() {
   const { t } = useTranslation();
@@ -30,312 +21,161 @@ export default function SuccessNotificationModal() {
   const data = useSuccessNotification((state) => state.data);
   const hide = useSuccessNotification((state) => state.hide);
   const { formatAmount, currencySymbol } = useCurrency();
-  const { safeAreaInset, contentSafeAreaInset, isTelegramWebApp } = useTelegramSDK();
   const haptic = useHaptic();
-
-  const safeBottom = isTelegramWebApp
-    ? Math.max(safeAreaInset.bottom, contentSafeAreaInset.bottom)
-    : 0;
-
-  const handleClose = useCallback(() => {
-    hide();
-  }, [hide]);
-
-  // Esc + scroll-lock are handled by the effects below; the trap only manages focus.
-  const modalRef = useFocusTrap<HTMLDivElement>(isOpen, { lockScroll: false });
-
-  // Escape key to close
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        handleClose();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, handleClose]);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      haptic.notification('success');
-    }
+    if (isOpen) haptic.notification('success');
   }, [isOpen, haptic]);
 
-  // Scroll lock
-  useEffect(() => {
-    if (!isOpen) return;
+  if (!data) return null;
 
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
-
-  if (!isOpen || !data) return null;
+  // Whole roubles without «,00»; kopeks only when there are any.
+  const money = (kopeks: number) =>
+    `${formatAmount(kopeks / 100, kopeks % 100 === 0 ? 0 : 2)}\u00A0${currencySymbol}`;
+  const gb = t('common.units.gb', 'GB');
 
   const isBalanceTopup = data.type === 'balance_topup';
-  const isSubscription =
-    data.type === 'subscription_activated' ||
-    data.type === 'subscription_renewed' ||
-    data.type === 'subscription_purchased';
-  const isDevicesPurchased = data.type === 'devices_purchased';
-  const isTrafficPurchased = data.type === 'traffic_purchased';
 
-  // Format amount
-  const formattedAmount = data.amountKopeks
-    ? `${formatAmount(data.amountKopeks / 100)}\u00A0${currencySymbol}`
-    : null;
+  const defaultTitles: Record<typeof data.type, string> = {
+    balance_topup: t('successNotification.balanceTopup.title', 'Balance topped up!'),
+    subscription_activated: t(
+      'successNotification.subscriptionActivated.title',
+      'Subscription activated!',
+    ),
+    subscription_renewed: t(
+      'successNotification.subscriptionRenewed.title',
+      'Subscription renewed!',
+    ),
+    subscription_purchased: t(
+      'successNotification.subscriptionPurchased.title',
+      'Subscription purchased!',
+    ),
+    devices_purchased: t('successNotification.devicesPurchased.title', 'Devices added!'),
+    traffic_purchased: t('successNotification.trafficPurchased.title', 'Traffic added!'),
+  };
+  const title = data.title || defaultTitles[data.type];
 
-  // Format new balance
-  const formattedBalance =
-    data.newBalanceKopeks !== undefined
-      ? `${formatAmount(data.newBalanceKopeks / 100)}\u00A0${currencySymbol}`
-      : null;
-
-  // Format expiry date
-  const formattedExpiry = formatDateOrRaw(data.expiresAt, uiLocale(), {
+  const expiry = formatDateOrRaw(data.expiresAt, uiLocale(), {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
 
-  // Determine title and message
-  let title = data.title;
-  const message = data.message;
-  let icon = <CheckCircleIcon className="h-16 w-16" />;
-  let gradientClass = 'from-success-500 to-success-600';
-
-  if (!title) {
-    if (isBalanceTopup) {
-      title = t('successNotification.balanceTopup.title', 'Balance topped up!');
-      icon = <WalletIcon className="h-8 w-8" />;
-      gradientClass = 'from-success-500 to-success-600';
-    } else if (data.type === 'subscription_activated') {
-      title = t('successNotification.subscriptionActivated.title', 'Subscription activated!');
-      icon = <RocketIcon className="h-8 w-8" />;
-      gradientClass = 'from-accent-500 to-purple-600';
-    } else if (data.type === 'subscription_renewed') {
-      title = t('successNotification.subscriptionRenewed.title', 'Subscription renewed!');
-      icon = <RocketIcon className="h-8 w-8" />;
-      gradientClass = 'from-accent-500 to-purple-600';
-    } else if (data.type === 'subscription_purchased') {
-      title = t('successNotification.subscriptionPurchased.title', 'Subscription purchased!');
-      icon = <RocketIcon className="h-8 w-8" />;
-      gradientClass = 'from-accent-500 to-purple-600';
-    } else if (data.type === 'devices_purchased') {
-      title = t('successNotification.devicesPurchased.title', 'Devices added!');
-      icon = <DevicesIcon className="h-8 w-8" />;
-      gradientClass = 'from-blue-500 to-cyan-600';
-    } else if (data.type === 'traffic_purchased') {
-      title = t('successNotification.trafficPurchased.title', 'Traffic added!');
-      icon = <TrafficIcon className="h-8 w-8" />;
-      gradientClass = 'from-success-500 to-success-600';
-    }
+  // Label → value rows, in reading order. A top-up leads with the amount instead.
+  const rows: [string, string][] = [];
+  if (data.devicesAdded) {
+    rows.push([t('successNotification.devicesAdded', 'Devices added'), `+${data.devicesAdded}`]);
+  }
+  if (data.newDeviceLimit) {
+    rows.push([
+      t('successNotification.totalDevices', 'Total devices'),
+      String(data.newDeviceLimit),
+    ]);
+  }
+  if (data.trafficGbAdded) {
+    rows.push([
+      t('successNotification.trafficAdded', 'Traffic added'),
+      `+${data.trafficGbAdded} ${gb}`,
+    ]);
+  }
+  if (data.newTrafficLimitGb) {
+    rows.push([
+      t('successNotification.totalTraffic', 'Total traffic'),
+      `${data.newTrafficLimitGb} ${gb}`,
+    ]);
+  }
+  if (data.tariffName) rows.push([t('successNotification.tariff', 'Tariff'), data.tariffName]);
+  if (expiry) rows.push([t('successNotification.validUntil', 'Valid until'), expiry]);
+  if (isBalanceTopup && data.newBalanceKopeks !== undefined) {
+    rows.push([t('successNotification.newBalance', 'New balance'), money(data.newBalanceKopeks)]);
+  }
+  if (!isBalanceTopup && data.amountKopeks) {
+    rows.push([t('successNotification.price', 'Price'), money(data.amountKopeks)]);
   }
 
-  const handleGoToSubscription = () => {
-    hide();
-    navigate('/subscriptions');
-  };
+  const action = isBalanceTopup
+    ? { label: t('successNotification.goToBalance', 'Go to Balance'), to: '/balance' }
+    : {
+        label: t('successNotification.goToSubscription', 'Go to Subscription'),
+        to: '/subscriptions',
+      };
 
-  const handleGoToBalance = () => {
-    hide();
-    navigate('/balance');
-  };
-
-  const modalContent = (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={handleClose} />
-
-      {/* Modal */}
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="success-modal-title"
-        tabIndex={-1}
-        className="relative mx-4 w-full max-w-sm overflow-hidden rounded-3xl border border-dark-700/50 bg-dark-900 shadow-2xl"
-        style={{
-          marginBottom: safeBottom ? `${safeBottom}px` : undefined,
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close button */}
-        <button
-          onClick={handleClose}
-          aria-label={t('common.close')}
-          className="absolute right-3 top-3 z-10 rounded-xl p-2 text-dark-400 transition-colors hover:bg-dark-800 hover:text-dark-200"
+  return (
+    <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && hide()}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm data-[state=open]:animate-fade-in" />
+        <DialogPrimitive.Content
+          // Focus the card itself: a ring on the close or main button read as a stray accent.
+          // Tab still walks the buttons, and the focus stays trapped in the dialog.
+          ref={contentRef}
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            contentRef.current?.focus({ preventScroll: true });
+          }}
+          className="fixed left-1/2 top-1/2 z-[100] flex max-h-[88vh] w-[calc(100%-32px)] max-w-[400px] -translate-x-1/2 -translate-y-1/2 flex-col gap-6 overflow-y-auto rounded-[var(--rd-radius-md)] bg-[var(--rd-surface)] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.18)] focus:outline-none data-[state=open]:animate-fade-in"
         >
-          <CloseIcon />
-        </button>
-
-        {/* Success header with animation */}
-        <div
-          className={`flex flex-col items-center bg-gradient-to-br ${gradientClass} px-6 pb-8 pt-10`}
-        >
-          {/* Use animate-pulse for celebration; bounce easing reads dated and
-              the lift is the moment, not the bounce. */}
-          <div className="mb-4 animate-pulse text-white">{icon}</div>
-          <h2 id="success-modal-title" className="text-center text-2xl font-bold text-white">
-            {title}
-          </h2>
-          {message && <p className="mt-2 text-center text-white/80">{message}</p>}
-        </div>
-
-        {/* Details */}
-        <div className="space-y-4 p-6">
-          {/* Amount */}
-          {formattedAmount && (
-            <div className="flex items-center justify-between rounded-xl bg-dark-800/50 px-4 py-3">
-              <span className="text-dark-400">
-                {isBalanceTopup
-                  ? t('successNotification.amount', 'Amount')
-                  : t('successNotification.price', 'Price')}
-              </span>
-              <span
-                className={`text-lg font-bold ${isDevicesPurchased || isTrafficPurchased ? 'text-dark-100' : 'text-success-400'}`}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 flex-col gap-2">
+              <DialogPrimitive.Title className="rd-h6 text-[var(--rd-heading)]">
+                {title}
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Description
+                className={data.message ? 'rd-p-md text-[var(--rd-caption)]' : 'sr-only'}
               >
-                {isDevicesPurchased || isTrafficPurchased ? '' : '+'}
-                {formattedAmount}
-              </span>
+                {data.message ?? title}
+              </DialogPrimitive.Description>
             </div>
-          )}
-
-          {/* Devices info (for devices purchase) */}
-          {isDevicesPurchased && data.devicesAdded && (
-            <div className="flex items-center justify-between rounded-xl bg-dark-800/50 px-4 py-3">
-              <span className="text-dark-400">
-                {t('successNotification.devicesAdded', 'Devices added')}
-              </span>
-              <span className="text-lg font-bold text-blue-400">+{data.devicesAdded}</span>
-            </div>
-          )}
-
-          {isDevicesPurchased && data.newDeviceLimit && (
-            <div className="flex items-center justify-between rounded-xl bg-dark-800/50 px-4 py-3">
-              <span className="text-dark-400">
-                {t('successNotification.totalDevices', 'Total devices')}
-              </span>
-              <span className="font-semibold text-dark-100">{data.newDeviceLimit}</span>
-            </div>
-          )}
-
-          {/* Traffic info (for traffic purchase) */}
-          {isTrafficPurchased && data.trafficGbAdded && (
-            <div className="flex items-center justify-between rounded-xl bg-dark-800/50 px-4 py-3">
-              <span className="text-dark-400">
-                {t('successNotification.trafficAdded', 'Traffic added')}
-              </span>
-              <span className="text-lg font-bold text-success-400">
-                +{data.trafficGbAdded} {t('common.units.gb', 'GB')}
-              </span>
-            </div>
-          )}
-
-          {isTrafficPurchased && data.newTrafficLimitGb && (
-            <div className="flex items-center justify-between rounded-xl bg-dark-800/50 px-4 py-3">
-              <span className="text-dark-400">
-                {t('successNotification.totalTraffic', 'Total traffic')}
-              </span>
-              <span className="font-semibold text-dark-100">
-                {data.newTrafficLimitGb} {t('common.units.gb', 'GB')}
-              </span>
-            </div>
-          )}
-
-          {/* New balance (for top-up) */}
-          {isBalanceTopup && formattedBalance && (
-            <div className="flex items-center justify-between rounded-xl bg-dark-800/50 px-4 py-3">
-              <span className="text-dark-400">
-                {t('successNotification.newBalance', 'New balance')}
-              </span>
-              <span className="text-lg font-bold text-dark-100">{formattedBalance}</span>
-            </div>
-          )}
-
-          {/* Tariff name */}
-          {data.tariffName && (
-            <div className="flex items-center justify-between gap-3 rounded-xl bg-dark-800/50 px-4 py-3">
-              <span className="shrink-0 text-dark-400">
-                {t('successNotification.tariff', 'Tariff')}
-              </span>
-              <span className="min-w-0 truncate font-semibold text-dark-100">
-                {data.tariffName}
-              </span>
-            </div>
-          )}
-
-          {/* Expiry date */}
-          {formattedExpiry && (
-            <div className="flex items-center justify-between rounded-xl bg-dark-800/50 px-4 py-3">
-              <span className="text-dark-400">
-                {t('successNotification.validUntil', 'Valid until')}
-              </span>
-              <span className="font-semibold text-dark-100">{formattedExpiry}</span>
-            </div>
-          )}
-
-          {/* Action buttons */}
-          <div className="space-y-2 pt-2">
-            {isSubscription && (
-              <button
-                onClick={handleGoToSubscription}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent-500 py-3.5 font-bold text-on-accent shadow-lg shadow-accent-500/25 transition-colors hover:bg-accent-400 active:bg-accent-600"
-              >
-                <RocketIcon className="h-8 w-8" />
-                <span>{t('successNotification.goToSubscription', 'Go to Subscription')}</span>
-              </button>
-            )}
-
-            {isBalanceTopup && (
-              <button
-                onClick={handleGoToBalance}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-success-500 py-3.5 font-bold text-white shadow-lg shadow-success-500/25 transition-colors hover:bg-success-400 active:bg-success-600"
-              >
-                <WalletIcon className="h-8 w-8" />
-                <span>{t('successNotification.goToBalance', 'Go to Balance')}</span>
-              </button>
-            )}
-
-            {isDevicesPurchased && (
-              <button
-                onClick={handleGoToSubscription}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent-500 py-3.5 font-bold text-on-accent shadow-lg shadow-accent-500/25 transition-colors hover:bg-accent-400 active:bg-accent-600"
-              >
-                <DevicesIcon className="h-8 w-8" />
-                <span>{t('successNotification.goToSubscription', 'Go to Subscription')}</span>
-              </button>
-            )}
-
-            {isTrafficPurchased && (
-              <button
-                onClick={handleGoToSubscription}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-success-500 py-3.5 font-bold text-white shadow-lg shadow-success-500/25 transition-colors hover:bg-success-400 active:bg-success-600"
-              >
-                <TrafficIcon className="h-8 w-8" />
-                <span>{t('successNotification.goToSubscription', 'Go to Subscription')}</span>
-              </button>
-            )}
-
-            <button
-              onClick={handleClose}
-              className="w-full rounded-xl bg-dark-800 py-3 font-semibold text-dark-300 transition-colors hover:bg-dark-700 hover:text-dark-100"
+            <DialogPrimitive.Close
+              aria-label={t('common.close')}
+              className="-mr-2 -mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--rd-caption)] transition-colors hover:bg-[var(--rd-icon-btn)] hover:text-[var(--rd-heading)]"
             >
-              {t('common.close', 'Close')}
-            </button>
+              <RdIcon name="cabinet/x" size={16} />
+            </DialogPrimitive.Close>
           </div>
-        </div>
-      </div>
-    </div>
-  );
 
-  if (typeof document !== 'undefined') {
-    return createPortal(modalContent, document.body);
-  }
-  return modalContent;
+          {isBalanceTopup && data.amountKopeks ? (
+            <div className="flex flex-col gap-1">
+              <span className="rd-p-md text-[var(--rd-caption)]">
+                {t('successNotification.amount', 'Amount')}
+              </span>
+              <span className="rd-h4 text-[var(--rd-heading)]">+{money(data.amountKopeks)}</span>
+            </div>
+          ) : null}
+
+          {rows.length > 0 && (
+            <dl className="flex flex-col divide-y divide-[var(--rd-divider)]">
+              {rows.map(([label, value]) => (
+                <div
+                  key={label}
+                  className="flex items-baseline justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                >
+                  <dt className="rd-p-md shrink-0 text-[var(--rd-caption)]">{label}</dt>
+                  <dd className="rd-p-md min-w-0 truncate text-right font-medium text-[var(--rd-heading)]">
+                    {value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
+
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                hide();
+                navigate(action.to);
+              }}
+              className="rd-btn w-full"
+            >
+              {action.label}
+            </button>
+            <DialogPrimitive.Close className="rd-btn-soft w-full !rounded-[16px] !bg-[var(--rd-field)] !text-[var(--rd-heading)] hover:!bg-[var(--rd-chip-hover)]">
+              {t('common.close', 'Close')}
+            </DialogPrimitive.Close>
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  );
 }

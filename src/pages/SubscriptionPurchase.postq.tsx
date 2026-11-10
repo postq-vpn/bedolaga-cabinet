@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { Notice } from '@/components/postq/ui';
 import { useSearchParams } from 'react-router';
 import { subscriptionApi } from '../api/subscription';
-import { WebBackButton } from '../components/WebBackButton';
 import { PurchaseWizard } from '../components/postq/purchase/PurchaseWizard';
 import { getGlassColors } from '../utils/glassTheme';
 import { useTheme } from '../hooks/useTheme';
@@ -173,7 +172,6 @@ export default function SubscriptionPurchase() {
     return (
       <div className="space-y-6">
         <header className="flex items-start gap-3">
-          <WebBackButton to="/" />
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-[var(--rd-heading)] sm:text-[32px]">
               {t('subscription.switchTariff.title')}
@@ -244,7 +242,6 @@ export default function SubscriptionPurchase() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <WebBackButton to="/" />
         <h1 className="text-2xl font-bold text-[var(--rd-heading)] sm:text-[32px]">
           {needsTariff(subscription)
             ? t('subscription.cta.moveToTariff')

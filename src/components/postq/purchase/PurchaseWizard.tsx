@@ -14,6 +14,7 @@ import { RdIcon } from '../RdIcon';
 import { DevicesDialog } from '../dashboard/DevicesDialog';
 import { TopUpDialog } from '../payment/TopUpDialog';
 import { savePendingPurchase } from './pendingPurchase';
+import { useBackHandler } from '../backOverride';
 import {
   ConfirmRow,
   MobileTotalBar,
@@ -58,6 +59,8 @@ export function PurchaseWizard({
     `${formatAmount(kopeks / 100, kopeks % 100 === 0 ? 0 : 2)} ${currencySymbol}`;
 
   const [step, setStep] = useState<Step>(1);
+  // Past the first step «Назад» goes to the previous step, not off the page.
+  useBackHandler(step > 1, () => setStep((s) => (s - 1) as Step));
   const [period, setPeriod] = useState<TariffPeriod | null>(
     pickBestValue(tariff.periods) || tariff.periods[0] || null,
   );
@@ -326,12 +329,7 @@ export function PurchaseWizard({
 
   return (
     <div className="flex flex-col gap-8">
-      <WizardNav
-        step={step}
-        total={3}
-        onBack={() => setStep((s) => (s - 1) as Step)}
-        exit={{ to: '/', label: t('postq.purchase.toCabinet') }}
-      />
+      <WizardNav step={step} total={3} />
       <WizardProgress titles={stepTitles} step={step} onStep={(n) => setStep(n as Step)} />
       <WizardHeading title={headings[step][0]} text={headings[step][1]} />
 

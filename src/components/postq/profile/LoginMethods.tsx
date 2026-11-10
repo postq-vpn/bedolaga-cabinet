@@ -83,7 +83,7 @@ export function LoginMethods({ telegramUsername }: { telegramUsername: string | 
           </span>
         </div>
         {telegramLinked ? (
-          <span className="rd-p-md shrink-0 text-[var(--rd-caption)]">
+          <span className="rd-p-md shrink-0 text-[var(--rd-success-text)]">
             {t('postq.profile.linked')}
           </span>
         ) : (

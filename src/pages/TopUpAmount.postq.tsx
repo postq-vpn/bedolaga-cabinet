@@ -1,7 +1,7 @@
 import { getLocalizedApiErrorMessage } from '../utils/api-error-display';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { RdIcon } from '@/components/postq/RdIcon';
 import { PaymentHeading, PaymentSidebar } from '@/components/postq/payment/PaymentSidebar';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -444,14 +444,6 @@ export default function TopUpAmount() {
           initial="initial"
           animate="animate"
         >
-          <Link
-            to="/balance"
-            className="rd-p-md inline-flex items-center gap-2 self-start text-[var(--rd-caption)] transition-colors hover:text-[var(--rd-heading)]"
-          >
-            <RdIcon name="arrow-right" size={16} className="rotate-180" />
-            {t('postq.payment.allMethods')}
-          </Link>
-
           {/* Method: name and limits, no icon tile. */}
           <motion.div variants={staggerItem} className="flex flex-col gap-1">
             <h2 className="rd-h5 text-[var(--rd-heading)]">{methodName}</h2>
@@ -561,7 +553,17 @@ export default function TopUpAmount() {
             </div>
 
             {quickAmounts.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              // Even grid instead of flex-wrap: four in a row when they fit, 2×2 on
+              // narrow screens — never a ragged 3 + 1.
+              <div
+                className={`grid gap-2 ${
+                  quickAmounts.length === 1
+                    ? 'grid-cols-1'
+                    : quickAmounts.length === 3
+                      ? 'grid-cols-3'
+                      : 'grid-cols-2 min-[400px]:grid-cols-4'
+                }`}
+              >
                 {quickAmounts.map((a) => {
                   const val = getQuickValue(a);
                   const isSelected = amount === val;
@@ -583,7 +585,7 @@ export default function TopUpAmount() {
                         }
                       }}
                       aria-pressed={isSelected}
-                      className={`rd-p-md h-10 rounded-[12px] px-4 transition-colors ${
+                      className={`rd-p-md h-10 whitespace-nowrap rounded-[12px] px-2 transition-colors ${
                         isSelected
                           ? 'bg-[var(--rd-chip-hover)] text-[var(--rd-heading)]'
                           : 'bg-[var(--rd-field)] text-[var(--rd-body)] hover:bg-[var(--rd-chip-hover)]'

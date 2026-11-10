@@ -63,7 +63,6 @@ export default function WebSocketNotifications() {
                 currency: currencySymbol,
               },
             ),
-          icon: <span className="text-lg">{isPositive ? '💵' : '💸'}</span>,
           onClick: () => navigate('/balance'),
           duration: 5000,
         });
@@ -122,7 +121,6 @@ export default function WebSocketNotifications() {
               days: message.days_left ?? 0,
             },
           ),
-          icon: <span className="text-lg">⏰</span>,
           onClick: () => navigate('/subscriptions'),
           duration: 10000,
         });
@@ -137,7 +135,6 @@ export default function WebSocketNotifications() {
             'wsNotifications.subscription.expiredMessage',
             'Your subscription has expired. Renew to continue using the service.',
           ),
-          icon: <span className="text-lg">😢</span>,
           onClick: () => navigate('/subscriptions'),
           duration: 10000,
         });
@@ -163,7 +160,6 @@ export default function WebSocketNotifications() {
               currency: currencySymbol,
             },
           ),
-          icon: <span className="text-lg">📅</span>,
           duration: 5000,
         });
         queryClient.invalidateQueries({ queryKey: ['balance'] });
@@ -180,7 +176,6 @@ export default function WebSocketNotifications() {
             'wsNotifications.subscription.trafficResetMessage',
             'Your traffic limit has been reset',
           ),
-          icon: <span className="text-lg">🔄</span>,
           duration: 5000,
         });
         queryClient.invalidateQueries({
@@ -245,7 +240,6 @@ export default function WebSocketNotifications() {
               currency: currencySymbol,
             },
           ),
-          icon: <span className="text-lg">🔁</span>,
           onClick: () => navigate('/subscriptions'),
           duration: 8000,
         });
@@ -267,7 +261,6 @@ export default function WebSocketNotifications() {
           message:
             message.reason ||
             t('wsNotifications.autopay.failedMessage', 'Failed to auto-renew your subscription'),
-          icon: <span className="text-lg">❌</span>,
           onClick: () => navigate('/subscriptions'),
           duration: 10000,
         });
@@ -289,7 +282,6 @@ export default function WebSocketNotifications() {
               currency: currencySymbol,
             },
           ),
-          icon: <span className="text-lg">💳</span>,
           onClick: () => navigate('/balance'),
           duration: 10000,
         });
@@ -318,7 +310,6 @@ export default function WebSocketNotifications() {
               currency: currencySymbol,
             },
           ),
-          icon: <span className="text-lg">🔁</span>,
           onClick: () => navigate('/subscriptions'),
           duration: 8000,
         });
@@ -343,7 +334,6 @@ export default function WebSocketNotifications() {
             'wsNotifications.sbpRecurring.activatedMessage',
             'SBP auto-payment has been successfully connected',
           ),
-          icon: <span className="text-lg">🔁</span>,
           onClick: () => navigate('/subscriptions'),
           duration: 8000,
         });
@@ -368,7 +358,6 @@ export default function WebSocketNotifications() {
             'wsNotifications.sbpRecurring.failedMessage',
             'Failed to charge your SBP auto-payment',
           ),
-          icon: <span className="text-lg">❌</span>,
           onClick: () => navigate('/subscriptions'),
           duration: 10000,
         });
@@ -391,7 +380,6 @@ export default function WebSocketNotifications() {
             'wsNotifications.sbpRecurring.pastDueMessage',
             'Your SBP auto-payment is overdue. Please check your banking app.',
           ),
-          icon: <span className="text-lg">⚠️</span>,
           onClick: () => navigate('/subscriptions'),
           duration: 10000,
         });
@@ -414,7 +402,6 @@ export default function WebSocketNotifications() {
             'wsNotifications.sbpRecurring.cancelledMessage',
             'SBP auto-payment has been disabled',
           ),
-          icon: <span className="text-lg">🔕</span>,
           onClick: () => navigate('/subscriptions'),
           duration: 8000,
         });
@@ -437,7 +424,6 @@ export default function WebSocketNotifications() {
           message:
             message.reason ||
             t('wsNotifications.account.bannedMessage', 'Your account has been blocked'),
-          icon: <span className="text-lg">🚫</span>,
           duration: 15000,
         });
         refreshUser();
@@ -449,7 +435,6 @@ export default function WebSocketNotifications() {
           type: 'success',
           title: t('wsNotifications.account.unbannedTitle', 'Account unblocked'),
           message: t('wsNotifications.account.unbannedMessage', 'Your account has been unblocked'),
-          icon: <span className="text-lg">✅</span>,
           duration: 8000,
         });
         refreshUser();
@@ -463,7 +448,6 @@ export default function WebSocketNotifications() {
           message:
             message.message ||
             t('wsNotifications.account.warningMessage', 'You have received a warning'),
-          icon: <span className="text-lg">⚠️</span>,
           duration: 10000,
         });
         return;
@@ -493,7 +477,6 @@ export default function WebSocketNotifications() {
                   currency: currencySymbol,
                 },
               ),
-          icon: <span className="text-lg">🎁</span>,
           onClick: () => navigate('/referral'),
           duration: 8000,
         });
@@ -518,7 +501,6 @@ export default function WebSocketNotifications() {
                 'wsNotifications.referral.registeredMessage',
                 'Someone joined using your referral link!',
               ),
-          icon: <span className="text-lg">👤</span>,
           onClick: () => navigate('/referral'),
           duration: 6000,
         });
@@ -540,7 +522,6 @@ export default function WebSocketNotifications() {
               currency: currencySymbol,
             },
           ),
-          icon: <span className="text-lg">💳</span>,
           onClick: () => navigate('/balance'),
           duration: 6000,
         });

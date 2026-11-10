@@ -21,6 +21,7 @@ import { ToastProvider } from './components/Toast';
 import { TooltipProvider } from './components/primitives/Tooltip';
 import { isInTelegramWebApp, closeTelegramApp } from './hooks/useTelegramSDK';
 import { getFallbackParentPath } from './utils/navigation';
+import { useBackOverride } from './components/postq/backOverride';
 import { subscriptionApi } from './api/subscription';
 import { useBlockingStore } from './store/blocking';
 
@@ -55,6 +56,10 @@ function TelegramBackButton() {
   const blockingType = useBlockingStore((state) => state.blockingType);
   const blockingTypeRef = useRef(blockingType);
   blockingTypeRef.current = blockingType;
+
+  // A screen's inner step-back (purchase wizard step, open support ticket):
+  // the native button runs it, exactly like the web header's «Назад».
+  const hasBackOverride = useBackOverride((s) => s.handler !== null);
 
   // Reliable in-app navigation depth (the app's entry point is 0). Driven by
   // React Router's navigation TYPE — NOT window.history.state.idx, which the
@@ -118,13 +123,15 @@ function TelegramBackButton() {
     const isRedirectingSubscriptionDetail =
       listRedirectsToDetail && SUBSCRIPTION_DETAIL_RE.test(location.pathname);
     try {
-      if (isTopLevel || isRedirectingSubscriptionDetail) {
+      if (hasBackOverride) {
+        showBackButton();
+      } else if (isTopLevel || isRedirectingSubscriptionDetail) {
         hideBackButton();
       } else {
         showBackButton();
       }
     } catch {}
-  }, [location, listRedirectsToDetail, blockingType]);
+  }, [location, listRedirectsToDetail, blockingType, hasBackOverride]);
 
   // Stable handler — ref prevents re-subscription on every render
   const handler = useCallback(() => {
@@ -133,6 +140,11 @@ function TelegramBackButton() {
     // flip-flop between Back and Close).
     if (blockingTypeRef.current) {
       closeTelegramApp();
+      return;
+    }
+    const override = useBackOverride.getState().handler;
+    if (override) {
+      override();
       return;
     }
     // Real in-app history (depth > 0): a normal back. Otherwise we were opened

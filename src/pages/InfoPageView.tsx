@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { usePostqDesign } from '@/design/postqDesign';
 import { useParams, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -287,6 +288,8 @@ export default function InfoPageView() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { capabilities, backButton } = usePlatform();
+  // Postq: «Назад» lives in the header (components/postq/BackButton).
+  const isPostq = usePostqDesign();
 
   const navigateRef = useRef(navigate);
   useEffect(() => {
@@ -359,7 +362,7 @@ export default function InfoPageView() {
   if (isError || !page) {
     return (
       <div className="space-y-6">
-        {!capabilities.hasBackButton && (
+        {!capabilities.hasBackButton && !isPostq && (
           <button
             onClick={() => navigate('/info')}
             className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-dark-700 bg-dark-800 transition-colors hover:border-dark-600"
@@ -378,7 +381,7 @@ export default function InfoPageView() {
   return (
     <div className="space-y-6">
       {/* Back button */}
-      {!capabilities.hasBackButton && (
+      {!capabilities.hasBackButton && !isPostq && (
         <button
           onClick={() => navigate(-1)}
           className="flex min-h-[44px] items-center gap-2 rounded-xl border border-dark-700 bg-dark-800 px-4 text-sm text-dark-400 transition-colors hover:border-dark-600 hover:text-dark-200"

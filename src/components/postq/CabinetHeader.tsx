@@ -54,37 +54,46 @@ export function CabinetHeader() {
       style={{ top: 'var(--rd-header-top)' }}
     >
       <div className="mx-auto flex max-w-[1728px] items-center gap-3">
-        <div className="relative isolate mr-auto flex items-center gap-12 rounded-[25px] px-6 py-4">
-          {/* Background on its own layer: a backdrop-filter on an ancestor
+        <div className="mr-auto flex items-center">
+          <div className="relative isolate flex items-center gap-12 rounded-[25px] px-6 py-4">
+            {/* Background on its own layer: a backdrop-filter on an ancestor
               would stop the dropdown's own blur from seeing the page. */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 -z-10 rounded-[25px] bg-[var(--rd-nav-bg)] [box-shadow:var(--rd-shadow)] backdrop-blur-xl will-change-[backdrop-filter]"
-          />
-          <Link to="/" aria-label={t('nav.dashboard')} className="shrink-0">
-            <RdImg name="nav-logo" width={154} height={31} className="block h-[31px] w-auto" />
-          </Link>
-          <nav aria-label={t('nav.main', 'Навигация кабинета')} className="flex items-center gap-8">
-            {nav.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                aria-current={isActive(item.to) ? 'page' : undefined}
-                className={linkClass(isActive(item.to))}
-              >
-                {item.label}
-              </Link>
-            ))}
-            <a
-              href={NEWS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={linkClass(false)}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 -z-10 rounded-[25px] bg-[var(--rd-nav-bg)] [box-shadow:var(--rd-shadow)] backdrop-blur-xl will-change-[backdrop-filter]"
+            />
+            <Link to="/" aria-label={t('nav.dashboard')} className="shrink-0">
+              <RdImg name="nav-logo" width={154} height={31} className="block h-[31px] w-auto" />
+            </Link>
+            <nav
+              aria-label={t('nav.main', 'Навигация кабинета')}
+              className="flex items-center gap-8"
             >
-              {t('nav.news', 'Новости')}
-            </a>
-            <UsefulMenu items={usefulItems} {...useful} linkClassName="text-[var(--rd-caption)]" />
-          </nav>
+              {nav.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  aria-current={isActive(item.to) ? 'page' : undefined}
+                  className={linkClass(isActive(item.to))}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <a
+                href={NEWS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={linkClass(false)}
+              >
+                {t('nav.news', 'Новости')}
+              </a>
+              <UsefulMenu
+                items={usefulItems}
+                {...useful}
+                linkClassName="text-[var(--rd-caption)]"
+              />
+            </nav>
+          </div>
         </div>
 
         {canToggle && (

@@ -64,8 +64,12 @@ export const PAYMENTS = [
   { src: 'pay-usdt', label: 'USDT', w: 17, h: 18 },
 ];
 
-/** Third-party services open in a new tab; our own (postq) links stay in place. */
+/** «Полезное» (help centre, server status, my IP) is reference you check
+ *  alongside the cabinet, so it always opens in a new tab — wherever it's linked. */
+const USEFUL_HREFS = new Set(USEFUL_LINKS.map((l) => l.href));
+
+/** Third-party services and «Полезное» open in a new tab; other postq links stay in place. */
 export const externalProps = (href: string) =>
-  href.startsWith('http') && !href.includes('postq.space')
+  USEFUL_HREFS.has(href) || (href.startsWith('http') && !href.includes('postq.space'))
     ? { target: '_blank', rel: 'noopener noreferrer' }
     : {};

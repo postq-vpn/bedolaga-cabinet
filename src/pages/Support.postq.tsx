@@ -19,10 +19,11 @@ import { usePlatform } from '@/platform';
 import { linkifyText } from '../utils/linkify';
 import { resolveSupportContact } from '../utils/supportContact';
 import { RdIcon } from '@/components/postq/RdIcon';
-import { UserAvatar } from '@/components/postq/UserAvatar';
 import { RdImg } from '@/components/postq/RdImg';
 import { SUPPORT_BOT_URL } from '@/components/postq/links';
 import { useChatFocus } from '@/components/postq/chatFocus';
+import { BackButton } from '@/components/postq/BackButton';
+import { useBackHandler } from '@/components/postq/backOverride';
 import { useVirtualKeyboard } from '@/hooks/useVirtualKeyboard';
 import { useVisualViewportHeight } from '@/hooks/useVisualViewportHeight';
 import { Skeleton, SkeletonGroup } from '@/components/ui/skeleton';
@@ -73,7 +74,7 @@ export default function Support() {
   const { t } = useTranslation();
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const queryClient = useQueryClient();
-  const { openTelegramLink, openLink } = usePlatform();
+  const { openTelegramLink, openLink, capabilities } = usePlatform();
 
   const openSupportContact = useCallback(
     (config: SupportConfig) => {
@@ -156,6 +157,11 @@ export default function Support() {
     setChatFocus(listHidden);
   }, [listHidden, setChatFocus]);
   useEffect(() => () => setChatFocus(false), [setChatFocus]);
+  // «Назад» (header, or Telegram's) closes the ticket back to the list.
+  useBackHandler(listHidden, () => {
+    setSelectedTicket(null);
+    setShowCreateForm(false);
+  });
   useEffect(() => {
     if (detailOpen && !isDesktop) window.scrollTo({ top: 0 });
   }, [detailOpen, isDesktop]);
@@ -617,7 +623,9 @@ export default function Support() {
         </section>
 
         <section
-          className={`rd-card rd-card--lg flex min-w-0 flex-col gap-4 lg:flex-1 lg:gap-6 ${!isDesktop && !detailOpen ? 'hidden' : ''}`}
+          className={`flex min-w-0 flex-col gap-4 lg:flex-1 lg:gap-6 ${
+            listHidden && selectedTicket ? '' : 'rd-card rd-card--lg'
+          } ${!isDesktop && !detailOpen ? 'hidden' : ''}`}
           // Phones: the chat is exactly one screen tall — messages scroll
           // inside, the reply box stays at the bottom. Inline, not a Tailwind
           // arbitrary class, and no flex-1 on phones — in the column it overrode the height.
@@ -633,25 +641,11 @@ export default function Support() {
               : undefined
           }
         >
-          {listHidden && (
-            // Phones: back and the status share one row to leave room for the chat.
-            <div className="flex shrink-0 items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedTicket(null);
-                  setShowCreateForm(false);
-                }}
-                className="rd-p-md flex h-10 shrink-0 items-center gap-2 self-start rounded-[12px] bg-[var(--rd-field)] pl-3 pr-4 text-[var(--rd-heading)] transition-colors hover:bg-[var(--rd-chip-hover)] active:scale-[0.98]"
-              >
-                <RdIcon name="arrow-right" size={20} className="rotate-180" />
-                {t('common.back')}
-              </button>
-              {selectedTicket && !showCreateForm && (
-                <span className="flex">
-                  <StatusPill status={ticketDetail?.status || selectedTicket.status} size="sm" />
-                </span>
-              )}
+          {listHidden && showCreateForm && !capabilities.hasBackButton && (
+            // The cabinet's one «Назад» (the header is hidden here); in Telegram
+            // the native button does it, via the same handler.
+            <div className="flex shrink-0">
+              <BackButton variant="mobile" />
             </div>
           )}
           {showCreateForm ? (
@@ -776,71 +770,95 @@ export default function Support() {
             </div>
           ) : selectedTicket ? (
             <>
-              <div className="flex shrink-0 flex-col gap-1 lg:gap-3">
-                <h2 className="rd-h5 line-clamp-2 text-[var(--rd-heading)] lg:line-clamp-none">
-                  {ticketDetail?.title || selectedTicket.title}
-                </h2>
-                <div className="flex flex-wrap items-center gap-4">
-                  <span className="rd-p-md text-[var(--rd-placeholder)]">
-                    {t('postq.support.numberCreated', {
-                      id: selectedTicket.id,
-                      date: dayLabel(selectedTicket.created_at),
-                    })}
-                  </span>
-                  {!listHidden && (
-                    <StatusPill status={ticketDetail?.status || selectedTicket.status} size="md" />
-                  )}
+              {/* Chat header. Phones: «Назад», then the subject over the number and status. */}
+              <div className="flex shrink-0 items-center gap-3 lg:flex-col lg:items-stretch">
+                {listHidden && !capabilities.hasBackButton && <BackButton variant="mobile" />}
+                <div className="flex min-w-0 flex-1 flex-col gap-1 lg:gap-3">
+                  <h2
+                    className={
+                      listHidden
+                        ? 'truncate text-[20px] font-bold leading-6 text-[var(--rd-heading)]'
+                        : 'rd-h5 text-[var(--rd-heading)]'
+                    }
+                  >
+                    {ticketDetail?.title || selectedTicket.title}
+                  </h2>
+                  <div
+                    className={`flex flex-wrap items-center gap-y-2 ${listHidden ? 'gap-x-2' : 'gap-x-4'}`}
+                  >
+                    <span
+                      className={`${listHidden ? 'rd-p-sm' : 'rd-p-md'} text-[var(--rd-placeholder)]`}
+                    >
+                      {listHidden
+                        ? `№ ${selectedTicket.id}`
+                        : t('postq.support.numberCreated', {
+                            id: selectedTicket.id,
+                            date: dayLabel(selectedTicket.created_at),
+                          })}
+                    </span>
+                    <StatusPill
+                      status={ticketDetail?.status || selectedTicket.status}
+                      size={listHidden ? 'sm' : 'md'}
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="hidden h-px w-full shrink-0 bg-[var(--rd-border)] lg:block" />
+              <div className="h-px w-full shrink-0 bg-[var(--rd-divider)]" />
 
               {detailLoading ? (
                 <SkeletonGroup className="flex flex-col gap-3">
                   <Skeleton variant="card" count={3} className="h-[100px]" />
                 </SkeletonGroup>
               ) : ticketDetail?.messages ? (
+                // Messenger layout: the user's messages on the right, support on
+                // the left with its mark; the time sits inside the bubble.
                 <div
                   ref={messagesRef}
-                  className="-mx-2 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden px-2 lg:max-h-[560px]"
+                  className="-mx-2 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden px-2 lg:max-h-[560px]"
                 >
                   {ticketDetail.messages.map((msg, i) => {
                     const prev = ticketDetail.messages[i - 1];
-                    const newDay =
-                      !prev ||
-                      new Date(prev.created_at).toDateString() !==
-                        new Date(msg.created_at).toDateString();
+                    const next = ticketDetail.messages[i + 1];
+                    const sameDay = (a: string, b: string) =>
+                      new Date(a).toDateString() === new Date(b).toDateString();
+                    const newDay = !prev || !sameDay(prev.created_at, msg.created_at);
                     const mine = !msg.is_from_admin;
+                    // Support's mark only under the last message of a run.
+                    const lastOfRun =
+                      !next ||
+                      next.is_from_admin !== msg.is_from_admin ||
+                      !sameDay(next.created_at, msg.created_at);
                     return (
-                      <div key={msg.id} className="flex flex-col gap-4">
+                      <div key={msg.id} className="flex flex-col gap-2">
                         {newDay && (
-                          <p className="rd-p-md text-center text-[var(--rd-caption)]">
+                          <p className="rd-p-sm py-2 text-center text-[var(--rd-caption)]">
                             {dayLabel(msg.created_at)}
                           </p>
                         )}
-                        <div className={`flex items-end gap-3 ${mine ? 'flex-row-reverse' : ''}`}>
-                          {mine ? (
-                            <UserAvatar size={36} />
-                          ) : (
-                            <span className="flex size-9 shrink-0 items-center justify-center">
-                              <RdImg name="logo-mark" width={30} height={29} />
+                        <div className={`flex items-end gap-2 ${mine ? 'justify-end' : ''}`}>
+                          {!mine && (
+                            <span className="flex size-8 shrink-0 items-center justify-center">
+                              {lastOfRun && (
+                                <RdImg
+                                  name="logo-mark"
+                                  width={30}
+                                  height={29}
+                                  className="h-6 w-auto"
+                                  alt={t('postq.support.team')}
+                                />
+                              )}
                             </span>
                           )}
                           <div
-                            className={`flex w-full max-w-[760px] flex-col gap-3 p-4 ${
+                            className={`flex min-w-0 max-w-[85%] flex-col gap-2 rounded-[20px] px-4 py-3 lg:max-w-[70%] ${
                               mine
-                                ? 'rounded-[16px] rounded-br-[4px] bg-[var(--rd-help)] sm:w-[72%]'
-                                : 'rounded-[16px] rounded-bl-[4px] bg-[var(--rd-field)] sm:w-[80%]'
+                                ? 'rounded-br-[4px] bg-[var(--rd-action-soft)]'
+                                : 'rounded-bl-[4px] bg-[var(--rd-field)]'
                             }`}
                           >
-                            <div className="rd-p-sm flex items-center justify-between gap-3 text-[var(--rd-caption)]">
-                              <span className={mine ? 'text-[var(--rd-action)]' : ''}>
-                                {mine ? t('support.you') : t('postq.support.team')}
-                              </span>
-                              <span>{timeLabel(msg.created_at)}</span>
-                            </div>
                             {msg.message_text && (
                               <div
-                                className="rd-p-md whitespace-pre-wrap break-words text-[var(--rd-heading)] [&_a]:text-[var(--rd-action)]"
+                                className="rd-p-md whitespace-pre-wrap break-words text-[var(--rd-heading)] [&_a]:text-[var(--rd-action)] [&_a]:underline"
                                 dangerouslySetInnerHTML={{ __html: linkifyText(msg.message_text) }}
                               />
                             )}
@@ -848,6 +866,9 @@ export default function Support() {
                               message={msg}
                               translateError={t('support.imageLoadFailed')}
                             />
+                            <span className="rd-p-sm self-end text-[var(--rd-caption)]">
+                              {timeLabel(msg.created_at)}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -869,44 +890,22 @@ export default function Support() {
                     }
                     replyMutation.mutate();
                   }}
-                  className="flex shrink-0 flex-col gap-3"
+                  className="flex shrink-0 flex-col gap-2"
                 >
-                  <div className="flex flex-col justify-between gap-2 lg:min-h-[112px] lg:gap-3 rounded-[16px] border-2 border-transparent bg-[var(--rd-field)] p-4 focus-within:border-[var(--rd-action)]">
-                    <textarea
-                      ref={replyRef}
-                      rows={1}
-                      className="rd-p-md max-h-[calc(50dvh-136px)] min-h-[24px] w-full resize-none overflow-y-auto lg:min-h-[44px] bg-transparent text-[var(--rd-heading)] outline-none placeholder:text-[var(--rd-placeholder)]"
-                      placeholder={t('postq.support.replyPlaceholder')}
-                      aria-label={t('postq.support.replyPlaceholder')}
-                      value={replyMessage}
-                      onChange={(e) => setReplyMessage(e.target.value)}
-                      enterKeyHint="send"
-                      onKeyDown={(e) => {
-                        // Enter sends, Shift+Enter breaks the line; leave IME
-                        // composition (e.g. picking a word) alone.
-                        if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
-                        e.preventDefault();
-                        // Same rule as the disabled «Отправить» button.
-                        const canSend =
-                          !replyMutation.isPending &&
-                          !replyAttachments.some((a) => a.uploading) &&
-                          (!!replyMessage.trim() || replyAttachments.some((a) => a.fileId));
-                        if (canSend) e.currentTarget.form?.requestSubmit();
-                      }}
-                      maxLength={4000}
-                    />
-                    <input
-                      ref={replyFileInputRef}
-                      type="file"
-                      accept={Object.keys(MEDIA_TYPES).join(',')}
-                      multiple
-                      className="hidden"
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        files.forEach((file) => handleFileSelect(file, setReplyAttachments));
-                        e.target.value = '';
-                      }}
-                    />
+                  <input
+                    ref={replyFileInputRef}
+                    type="file"
+                    accept={Object.keys(MEDIA_TYPES).join(',')}
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      files.forEach((file) => handleFileSelect(file, setReplyAttachments));
+                      e.target.value = '';
+                    }}
+                  />
+                  {/* One composer row: attach, the growing field, send. */}
+                  <div className="flex flex-col gap-2 rounded-[24px] border-2 border-transparent bg-[var(--rd-field)] p-2 focus-within:border-[var(--rd-action)]">
                     <AttachmentsPreview
                       items={replyAttachments}
                       onRemove={(idx) =>
@@ -917,41 +916,70 @@ export default function Support() {
                         })
                       }
                     />
-                    {replyAttachments.length < 10 && (
+                    <div className="flex items-end gap-2">
                       <button
                         type="button"
                         onClick={() => replyFileInputRef.current?.click()}
-                        disabled={replyAttachments.some((a) => a.uploading)}
-                        className="rd-p-md rd-link flex items-center gap-2 self-start text-left disabled:opacity-50"
+                        disabled={
+                          replyAttachments.length >= 10 || replyAttachments.some((a) => a.uploading)
+                        }
+                        aria-label={t('postq.support.attachImage')}
+                        title={t('postq.support.attachImage')}
+                        className="flex size-10 shrink-0 items-center justify-center rounded-full text-[var(--rd-caption)] transition-colors hover:bg-[var(--rd-chip-hover)] hover:text-[var(--rd-heading)] disabled:opacity-40"
                       >
-                        <RdIcon name="cabinet/paperclip" size={18} />
-                        {t('postq.support.attachImage')}
-                        {replyAttachments.length > 0 && ` (${replyAttachments.length}/10)`}
+                        <RdIcon name="cabinet/paperclip" size={20} />
                       </button>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <p className="rd-p-sm hidden max-w-[600px] text-[var(--rd-placeholder)] lg:block">
-                      {t('postq.support.safety')}
-                    </p>
-                    <button
-                      type="submit"
-                      className="rd-btn shrink-0 disabled:!bg-[var(--rd-chip)] disabled:!text-[var(--rd-placeholder)] disabled:!opacity-100"
-                      disabled={
-                        replyMutation.isPending ||
-                        (!replyMessage.trim() &&
-                          replyAttachments.filter((a) => a.fileId).length === 0) ||
-                        replyAttachments.some((a) => a.uploading)
-                      }
-                    >
-                      {replyMutation.isPending ? t('common.loading') : t('support.send')}
-                    </button>
+                      <textarea
+                        ref={replyRef}
+                        rows={1}
+                        className="rd-p-md max-h-[calc(50dvh-136px)] min-h-[40px] flex-1 resize-none overflow-y-auto bg-transparent py-[10px] text-[var(--rd-heading)] outline-none placeholder:text-[var(--rd-placeholder)]"
+                        placeholder={t('postq.support.replyPlaceholder')}
+                        aria-label={t('postq.support.replyPlaceholder')}
+                        value={replyMessage}
+                        onChange={(e) => setReplyMessage(e.target.value)}
+                        enterKeyHint="send"
+                        onKeyDown={(e) => {
+                          // Enter sends, Shift+Enter breaks the line; leave IME
+                          // composition (e.g. picking a word) alone.
+                          if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
+                          e.preventDefault();
+                          // Same rule as the disabled send button.
+                          const canSend =
+                            !replyMutation.isPending &&
+                            !replyAttachments.some((a) => a.uploading) &&
+                            (!!replyMessage.trim() || replyAttachments.some((a) => a.fileId));
+                          if (canSend) e.currentTarget.form?.requestSubmit();
+                        }}
+                        maxLength={4000}
+                      />
+                      <button
+                        type="submit"
+                        aria-label={t('support.send')}
+                        title={t('support.send')}
+                        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--rd-action)] text-[var(--rd-on-action)] transition-colors hover:bg-[var(--rd-action-hover)] disabled:bg-[var(--rd-chip)] disabled:text-[var(--rd-placeholder)]"
+                        disabled={
+                          replyMutation.isPending ||
+                          (!replyMessage.trim() &&
+                            replyAttachments.filter((a) => a.fileId).length === 0) ||
+                          replyAttachments.some((a) => a.uploading)
+                        }
+                      >
+                        {replyMutation.isPending ? (
+                          <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        ) : (
+                          <RdIcon name="arrow-right" size={20} className="-rotate-90" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   {formError && (
                     <p role="alert" className="rd-p-sm text-[var(--rd-error-text)]">
                       {formError}
                     </p>
                   )}
+                  <p className="rd-p-sm hidden text-[var(--rd-placeholder)] lg:block">
+                    {t('postq.support.safety')}
+                  </p>
                 </form>
               )}
 

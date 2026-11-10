@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { usePlatform } from '../platform';
 import { BackIcon } from './icons';
+import { usePostqDesign } from '@/design/postqDesign';
 
 interface WebBackButtonProps {
   to: string;
@@ -14,8 +15,10 @@ interface WebBackButtonProps {
  */
 export function WebBackButton({ to, replace, className }: WebBackButtonProps) {
   const { platform } = usePlatform();
+  // Postq: the header's BackButton covers every off-menu screen.
+  const isPostq = usePostqDesign();
 
-  if (platform === 'telegram') return null;
+  if (platform === 'telegram' || isPostq) return null;
 
   return (
     <Link

@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
 import { cn } from '@/lib/utils';
 import { RdIcon } from '../RdIcon';
 
@@ -10,38 +9,16 @@ import { RdIcon } from '../RdIcon';
  * the phone bar with the total. Both flows render them, so they stay alike.
  */
 
-/** «Назад» (or a link out on the first step) and a plain «Шаг 2 из 3». */
-export function WizardNav({
-  step,
-  total,
-  onBack,
-  exit,
-}: {
-  step: number;
-  total: number;
-  onBack: () => void;
-  /** Where the first step leads back to; nothing is shown when omitted. */
-  exit?: { to: string; label: string };
-}) {
+/**
+ * «Шаг 2 из 3». Going back a step — and out of the flow on the first one — is
+ * the cabinet's one «Назад» (components/postq/BackButton, via useBackHandler).
+ */
+export function WizardNav({ step, total }: { step: number; total: number }) {
   const { t } = useTranslation();
-  const linkClass = 'flex items-center gap-2 transition-colors hover:text-[var(--rd-heading)]';
   return (
-    <div className="rd-p-md flex items-center justify-between gap-4 font-medium text-[var(--rd-caption)]">
-      {step > 1 ? (
-        <button type="button" onClick={onBack} className={linkClass}>
-          <RdIcon name="arrow-right" size={20} className="rotate-180" />
-          {t('common.back')}
-        </button>
-      ) : exit ? (
-        <Link to={exit.to} className={linkClass}>
-          <RdIcon name="arrow-right" size={20} className="rotate-180" />
-          {exit.label}
-        </Link>
-      ) : (
-        <span />
-      )}
-      <span>{t('postq.purchase.stepOf', { step, total })}</span>
-    </div>
+    <p className="rd-p-md text-right font-medium text-[var(--rd-caption)]">
+      {t('postq.purchase.stepOf', { step, total })}
+    </p>
   );
 }
 

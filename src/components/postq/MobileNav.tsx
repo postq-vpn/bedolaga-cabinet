@@ -9,6 +9,7 @@ import { HIDDEN_UNDER_KEYBOARD, useVirtualKeyboard } from '@/hooks/useVirtualKey
 import { cn } from '@/lib/utils';
 import { usePlatform } from '@/platform';
 import { useAuthStore } from '@/store/auth';
+import { BackSlot, useShowBackButton } from './BackButton';
 import { useDashboardAccent } from './dashboardAccent';
 import { RdIcon } from './RdIcon';
 import { RdImg } from './RdImg';
@@ -18,14 +19,7 @@ import { USEFUL_LINKS, externalProps } from './links';
 
 const NEWS_URL = 'https://t.me/postq_news';
 
-/** Tabs of the bottom bar; everything else lives in the burger menu. */
-export const MOBILE_TABS = ['/', '/balance', '/support', '/profile'] as const;
-
-/** The bottom bar shows on its own screens only (nested pages get the full height). */
-export function isMobileTabScreen(pathname: string): boolean {
-  const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
-  return (MOBILE_TABS as readonly string[]).includes(path);
-}
+export { MOBILE_TABS, isMobileTabScreen } from './menuScreens';
 
 function useUnreadTickets(): number {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -58,6 +52,7 @@ export function MobileHeader({ topInset }: { topInset: number }) {
   });
   const rubles = balance?.balance_rubles;
   const softTopUp = useDashboardAccent((st) => st.softTopUp);
+  const showBack = useShowBackButton();
 
   return (
     // Fixed: two compact 56px glass pills — the logo, and the balance with a
@@ -67,26 +62,33 @@ export function MobileHeader({ topInset }: { topInset: number }) {
       style={{ top: `calc(12px + ${topInset}px)` }}
     >
       <div className="flex items-center justify-between gap-3">
-        <Link
-          to="/"
-          aria-label={t('nav.dashboard')}
-          className="rd-liquid-glass flex h-14 shrink-0 items-center rounded-[24px] px-4"
-        >
-          {/* Narrow phones (iPhone SE 1st gen, 320px): the mark alone, so the
-              balance next to it isn't cut off. */}
-          <RdImg
-            name="nav-logo"
-            width={154}
-            height={31}
-            className="hidden h-[26px] w-auto min-[360px]:block"
-          />
-          <RdImg
-            name="logo-mark"
-            width={30}
-            height={29}
-            className="block h-[26px] w-auto min-[360px]:hidden"
-          />
-        </Link>
+        {/* Off the menu's screens the logo «splits»: the wordmark slides away
+            into the mark and «Назад» grows out of it on the left, so the
+            balance pill still fits. One image, clipped — no swap. */}
+        <div className="flex shrink-0 items-center">
+          <BackSlot visible={showBack} variant="mobile" />
+          <Link
+            to="/"
+            aria-label={t('nav.dashboard')}
+            className="rd-liquid-glass flex h-14 shrink-0 items-center rounded-[24px] px-4"
+          >
+            {/* 26px = the mark at this height. Narrow phones (iPhone SE 1st
+                gen, 320px) always show the mark alone. */}
+            <span
+              className={cn(
+                'block h-[26px] overflow-hidden transition-[width] duration-300 ease-out motion-reduce:transition-none',
+                showBack ? 'w-[26px]' : 'w-[26px] min-[360px]:w-[129px]',
+              )}
+            >
+              <RdImg
+                name="nav-logo"
+                width={154}
+                height={31}
+                className="block h-[26px] w-auto max-w-none"
+              />
+            </span>
+          </Link>
+        </div>
         {/* Balance: the amount and a plus that tops up; the whole pill leads
             to «Оплата». */}
         <Link
