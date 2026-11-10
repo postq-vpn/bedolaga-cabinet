@@ -13,6 +13,7 @@
 
 import http from 'node:http';
 import { routes } from './routes.mjs';
+import { attachWs } from './ws.mjs';
 
 const PORT = Number(process.env.MOCK_PORT || 8080);
 const DELAY_MS = Number(process.env.MOCK_DELAY_MS || 150);
@@ -103,6 +104,8 @@ const server = http.createServer(async (req, res) => {
     send(res, 500, { detail: String(err?.message || err) });
   }
 });
+
+attachWs(server);
 
 server.listen(PORT, () => {
   console.log(`Mock cabinet backend on http://localhost:${PORT} (${routes.size} routes)`);

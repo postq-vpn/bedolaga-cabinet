@@ -3,6 +3,7 @@
 
 import { db, nowIso, inDays, rub, subscriptionView, subscriptionListItem } from './state.mjs';
 import { shopRoutes } from './routes-shop.mjs';
+import { notifyRoutes } from './notify.mjs';
 
 function b64url(obj) {
   return Buffer.from(JSON.stringify(obj)).toString('base64url');
@@ -759,6 +760,7 @@ export const routes = new Map([
   ['POST /cabinet/activity/events', () => ({ success: true })],
 
   ...shopRoutes,
+  ...notifyRoutes,
 ]);
 
 function paginate(items, query) {
