@@ -151,9 +151,8 @@ export default function Support() {
   // (Telegram on iOS lays the keyboard over the page without shrinking dvh).
   const keyboardOpen = useVirtualKeyboard();
   const visibleHeight = useVisualViewportHeight();
-  // Above the keyboard — known the moment a field is focused, so the chat moves
-  // up together with the keyboard instead of after it.
-  const keyboardHeight = useKeyboardVisibleHeight(keyboardOpen && listHidden);
+  // Height above the keyboard while it's really open (not just a focused field).
+  const keyboardHeight = useKeyboardVisibleHeight(listHidden);
   // Phones: an open ticket is a conversation — the app chrome steps away.
   const setChatFocus = useChatFocus((st) => st.setChatFocus);
   useEffect(() => {
@@ -661,8 +660,6 @@ export default function Support() {
                       // Only main's 24px top padding and the top inset come off.
                       `calc(${keyboardHeight}px - var(--rd-top-inset, 0px) - 24px)`
                     : 'calc(100dvh - var(--rd-top-inset, 0px) - 32px - var(--mobile-nav-offset))',
-                  // Moves with the keyboard (iOS keyboard curve), not after it.
-                  transition: 'height 300ms cubic-bezier(0.32, 0.72, 0, 1)',
                 }
               : undefined
           }
