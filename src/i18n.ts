@@ -18,7 +18,17 @@ const adminLoaders: Record<string, Loader> = {
   fa: () => import('virtual:locale/fa/admin'),
 };
 
-const SUPPORTED_LANGS = Object.keys(localeLoaders);
+/**
+ * Languages the cabinet shows. Only Russian for now: the other translations
+ * stay in the repo (loaders above) but are switched off — no device language,
+ * stored choice or switcher can bring them up. Add a code here to turn it back on.
+ */
+declare global {
+  /** Tests switch every translation on to keep covering them (src/test/setup.ts). */
+  var __CABINET_LANGS_OVERRIDE__: readonly string[] | undefined;
+}
+export const ENABLED_LANGS: readonly string[] = globalThis.__CABINET_LANGS_OVERRIDE__ ?? ['ru'];
+const SUPPORTED_LANGS = Object.keys(localeLoaders).filter((l) => ENABLED_LANGS.includes(l));
 const FALLBACK_LNG = 'ru';
 const LANGUAGE_STORAGE_KEY = 'cabinet_language';
 
@@ -151,6 +161,11 @@ syncHtmlLang(activeLng);
 // survive reloads (there is no auto-detection to fall back on otherwise).
 i18n.on('languageChanged', (lng: string) => {
   const code = lng.split('-')[0];
+  // A switched-off language (e.g. from a stray changeLanguage call) goes back to Russian.
+  if (!SUPPORTED_LANGS.includes(code)) {
+    void i18n.changeLanguage(FALLBACK_LNG);
+    return;
+  }
   loadLanguage(code);
   syncHtmlLang(code);
   try {

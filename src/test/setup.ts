@@ -92,3 +92,7 @@ if (typeof (globalThis as GlobalRecord).document !== 'undefined') {
 // The suite covers the postq redesign; it is behind an admin switch in the app
 // (src/design/postqDesign.ts), so tests force it on.
 globalThis.__POSTQ_DESIGN_OVERRIDE__ = true;
+
+// The app shows Russian only for now (src/i18n.ts ENABLED_LANGS); the other
+// translations stay and their tests keep running with them switched on.
+globalThis.__CABINET_LANGS_OVERRIDE__ = ['ru', 'en', 'zh', 'fa'];

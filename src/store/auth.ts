@@ -423,7 +423,10 @@ export const useAuthStore = create<AuthState>()(
           email,
           password,
           first_name: firstName,
-          language: navigator.language.split('-')[0] || 'ru',
+          // The cabinet's language (Russian only for now), not the device's —
+          // the bot then writes to the new user in the same language.
+          // (<html lang> follows i18n; no i18n import here — the store stays light.)
+          language: document.documentElement.lang || 'ru',
           referral_code: code,
           campaign_slug: campaignSlug,
           accepted_legal_documents: acceptedLegalDocuments,

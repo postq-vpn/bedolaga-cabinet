@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { infoApi } from '@/api/info';
 import { ChevronDownIcon } from '@/components/icons';
+import { ENABLED_LANGS } from '@/i18n';
 
 export default function LanguageSwitcher() {
   const { t, i18n } = useTranslation();
@@ -17,7 +18,8 @@ export default function LanguageSwitcher() {
     queryFn: infoApi.getLanguages,
     staleTime: 1000 * 60 * 5,
   });
-  const availableLanguages = data?.languages ?? [];
+  // Only switched-on languages (i18n.ts ENABLED_LANGS), whatever the API lists.
+  const availableLanguages = (data?.languages ?? []).filter((l) => ENABLED_LANGS.includes(l.code));
 
   const currentLang = availableLanguages.find((l) => l.code === i18n.language) ||
     availableLanguages[0] || { code: 'ru', name: 'RU', flag: '🇷🇺' };
