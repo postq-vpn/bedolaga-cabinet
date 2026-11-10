@@ -25,7 +25,7 @@ import { useChatFocus } from '@/components/postq/chatFocus';
 import { BackButton } from '@/components/postq/BackButton';
 import { useBackHandler } from '@/components/postq/backOverride';
 import { useVirtualKeyboard } from '@/hooks/useVirtualKeyboard';
-import { useKeyboardVisibleHeight, useVisualViewportHeight } from '@/hooks/useVisualViewportHeight';
+import { useVisualViewportHeight } from '@/hooks/useVisualViewportHeight';
 import { Skeleton, SkeletonGroup } from '@/components/ui/skeleton';
 
 const log = logger.createLogger('Support');
@@ -151,9 +151,6 @@ export default function Support() {
   // (Telegram on iOS lays the keyboard over the page without shrinking dvh).
   const keyboardOpen = useVirtualKeyboard();
   const visibleHeight = useVisualViewportHeight();
-  // Above the keyboard — known the moment a field is focused, so the chat moves
-  // up together with the keyboard instead of after it.
-  const keyboardHeight = useKeyboardVisibleHeight(keyboardOpen && listHidden);
   // Phones: an open ticket is a conversation — the app chrome steps away.
   const setChatFocus = useChatFocus((st) => st.setChatFocus);
   useEffect(() => {
@@ -205,27 +202,6 @@ export default function Support() {
       if (el) el.scrollTop = el.scrollHeight;
     });
   }, [keyboardOpen, visibleHeight, listHidden]);
-
-  // While the chat's height animates with the keyboard, keep the latest message
-  // in view (when the reader was at the bottom).
-  const stickToBottomRef = useRef(true);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the list mounts once messages load — re-attach then
-  useEffect(() => {
-    const list = messagesRef.current;
-    if (!list || typeof ResizeObserver === 'undefined') return;
-    const onScroll = () => {
-      stickToBottomRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
-    };
-    const ro = new ResizeObserver(() => {
-      if (stickToBottomRef.current) list.scrollTop = list.scrollHeight;
-    });
-    list.addEventListener('scroll', onScroll, { passive: true });
-    ro.observe(list);
-    return () => {
-      list.removeEventListener('scroll', onScroll);
-      ro.disconnect();
-    };
-  }, [ticketDetail?.messages]);
 
   // The reply box grows line by line (the whole composer up to half the screen, then it scrolls
   // inside); the history shrinks above it and stays pinned to the latest message.
@@ -656,13 +632,11 @@ export default function Support() {
           style={
             listHidden && selectedTicket
               ? {
-                  height: keyboardHeight
-                    ? // Down to the keyboard's edge: the composer sits right on it.
-                      // Only main's 24px top padding and the top inset come off.
-                      `calc(${keyboardHeight}px - var(--rd-top-inset, 0px) - 24px)`
-                    : 'calc(100dvh - var(--rd-top-inset, 0px) - 32px - var(--mobile-nav-offset))',
-                  // Moves with the keyboard (iOS keyboard curve), not after it.
-                  transition: 'height 300ms cubic-bezier(0.32, 0.72, 0, 1)',
+                  height:
+                    keyboardOpen && visibleHeight
+                      ? // The bottom nav hides under the keyboard — only the top inset counts.
+                        `calc(${visibleHeight}px - var(--rd-top-inset, 0px) - 32px)`
+                      : 'calc(100dvh - var(--rd-top-inset, 0px) - 32px - var(--mobile-nav-offset))',
                 }
               : undefined
           }
@@ -931,16 +905,7 @@ export default function Support() {
                     }}
                   />
                   {/* One composer row: attach, the growing field, send. */}
-                  {/* Phones, keyboard open: a full-width bar resting on the keyboard;
-                      its fill runs on under the keyboard's rounded top corners, so
-                      no page shows through beside them. */}
-                  <div
-                    className={`relative flex flex-col gap-2 bg-[var(--rd-field)] ${
-                      keyboardHeight
-                        ? '-mx-4 rounded-t-[24px] px-4 py-2 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-12 after:bg-[var(--rd-field)]'
-                        : 'rounded-[24px] border-2 border-transparent p-2 focus-within:border-[var(--rd-action)]'
-                    }`}
-                  >
+                  <div className="flex flex-col gap-2 rounded-[24px] border-2 border-transparent bg-[var(--rd-field)] p-2 focus-within:border-[var(--rd-action)]">
                     <AttachmentsPreview
                       items={replyAttachments}
                       onRemove={(idx) =>
