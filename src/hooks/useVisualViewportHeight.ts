@@ -26,21 +26,51 @@ export function useVisualViewportHeight(): number | null {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
-// ─── The keyboard, as the screen actually shows it ──────────────────────────
-// Focus is not a keyboard signal on iOS: the keyboard can be swiped away while
-// the field keeps focus. Only a visualViewport that really shrank says the
-// keyboard is up. (Guessing its height on focus to beat iOS's late resize
-// event was tried and misplaced the chat — don't.)
+// ─── Predicting the keyboard ────────────────────────────────────────────────
+// iOS reports the new visualViewport only once the keyboard has finished
+// sliding in, so a layout that waits for it moves up a beat late. The keyboard
+// height is remembered (per device, it barely changes) and used the moment a
+// field is focused; the real value replaces it when it arrives.
 
-/** Below this the viewport hasn't shrunk for a keyboard. */
+const KB_KEY = 'rd-keyboard-height';
+/** Below this the viewport hasn't shrunk for the keyboard yet. */
 const MIN_KEYBOARD = 120;
 
+let rememberedKeyboard: number | null = null;
+function readRemembered(): number | null {
+  if (rememberedKeyboard !== null) return rememberedKeyboard;
+  try {
+    const v = Number(localStorage.getItem(KB_KEY));
+    if (v > MIN_KEYBOARD) rememberedKeyboard = v;
+  } catch {
+    // storage unavailable — the guess below covers it
+  }
+  return rememberedKeyboard;
+}
+function remember(height: number): void {
+  if (Math.abs(height - (rememberedKeyboard ?? 0)) < 2) return;
+  rememberedKeyboard = height;
+  try {
+    localStorage.setItem(KB_KEY, String(height));
+  } catch {
+    // fine: kept for this session only
+  }
+}
+
 /**
- * Visible height above the on-screen keyboard while it's actually open;
- * null when it's closed (even with a focused field) or there's no visualViewport.
+ * Visible height while the on-screen keyboard is open — available at once on
+ * focus (from the remembered keyboard height; first time ever, ~42% of the
+ * screen, a typical phone keyboard with suggestions), then the measured one.
+ * null when the keyboard is closed or there's no visualViewport.
  */
-export function useKeyboardVisibleHeight(enabled: boolean): number | null {
+export function useKeyboardVisibleHeight(keyboardOpen: boolean): number | null {
   const visible = useVisualViewportHeight();
-  if (!enabled || visible === null || typeof window === 'undefined') return null;
-  return window.innerHeight - visible > MIN_KEYBOARD ? visible : null;
+  if (!keyboardOpen || visible === null || typeof window === 'undefined') return null;
+  const full = window.innerHeight;
+  const keyboard = full - visible;
+  if (keyboard > MIN_KEYBOARD) {
+    remember(keyboard);
+    return visible;
+  }
+  return full - (readRemembered() ?? Math.round(full * 0.42));
 }
