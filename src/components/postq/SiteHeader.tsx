@@ -9,9 +9,11 @@ import { MARKETING_URL, SITE_NAV, USEFUL_LINKS, externalProps } from './links';
 /* Every frosted layer also gets will-change: backdrop-filter: Chrome otherwise
    re-composites the blur a frame late on theme switch and the bar blinks. */
 const GLASS = '[box-shadow:var(--rd-shadow)] backdrop-blur-xl will-change-[backdrop-filter]';
-/** Frosted pill used for each separate piece of the bar on phones. */
-const PILL =
-  'max-sm:bg-[var(--rd-nav-bg)] max-sm:[box-shadow:var(--rd-shadow)] max-sm:backdrop-blur-xl max-sm:will-change-[backdrop-filter]';
+/** Liquid-glass pill used for each separate piece of the bar on phones — the
+ *  same glass as postq-site's RdHeader (rd-liquid-glass-sm, postq.css). */
+const PILL = 'rd-liquid-glass-sm';
+/** The phone menu panel: same glass edge, denser fill (menu-bg). */
+const MENU_PILL = 'rd-liquid-glass-sm rd-liquid-glass-sm--menu';
 const MENU_ITEM =
   'whitespace-nowrap rounded-[12px] px-4 py-3 text-[16px] text-[var(--rd-heading)] transition-colors hover:bg-[var(--rd-icon-btn)]';
 const LOGIN_CLASS =
@@ -143,7 +145,7 @@ export function SiteHeader({ safeTop = 0 }: { safeTop?: number }) {
             aria-label="Мобильная навигация"
             className={cn(
               'mt-3 flex flex-col gap-1 lg:hidden max-sm:rounded-[25px] max-sm:p-3 sm:border-t sm:border-[var(--rd-divider)] sm:pt-3',
-              PILL,
+              MENU_PILL,
             )}
           >
             {[...SITE_NAV, ...USEFUL_LINKS].map((item) => (
