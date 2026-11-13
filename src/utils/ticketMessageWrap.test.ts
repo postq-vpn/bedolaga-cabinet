@@ -21,7 +21,8 @@ const RENDERERS = [
   // Both designs of the support page (src/design/postqDesign.ts).
   'src/pages/Support.postq.tsx',
   'src/pages/Support.legacy.tsx',
-  'src/pages/AdminTickets.tsx',
+  'src/pages/AdminTickets.postq.tsx',
+  'src/pages/AdminTickets.legacy.tsx',
   'src/components/admin/userDetail/TicketsTab.tsx',
 ];
 

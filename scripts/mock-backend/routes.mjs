@@ -4,6 +4,7 @@
 import { db, nowIso, inDays, rub, subscriptionView, subscriptionListItem } from './state.mjs';
 import { shopRoutes } from './routes-shop.mjs';
 import { notifyRoutes } from './notify.mjs';
+import { adminTicketRoutes } from './routes-admin-tickets.mjs';
 
 function b64url(obj) {
   return Buffer.from(JSON.stringify(obj)).toString('base64url');
@@ -144,6 +145,8 @@ function providerPage(p) {
 }
 
 export const routes = new Map([
+  // First: more specific than the generic handlers below.
+  ...adminTicketRoutes,
   // ─── Health ──────────────────────────────────────────────────────────────
   ['GET /health', () => ({ status: 'ok' })],
   ['GET /health/unified', () => ({ status: 'ok', web_api: true })],

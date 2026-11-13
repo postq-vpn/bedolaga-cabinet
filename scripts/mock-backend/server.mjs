@@ -88,6 +88,10 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(302, { location: out.__redirect, 'cache-control': 'no-store' });
       return res.end();
     }
+    if (out?.__raw) {
+      res.writeHead(200, { 'content-type': out.__raw.type, 'cache-control': 'no-store' });
+      return res.end(out.__raw.data);
+    }
     if (out?.__html !== undefined) {
       res.writeHead(out.__status ?? 200, {
         'content-type': 'text/html; charset=utf-8',

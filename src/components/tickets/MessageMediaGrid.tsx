@@ -1,8 +1,11 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
-import { ChevronLeftIcon, ChevronRightIcon, DocumentIcon, XIcon } from '@/components/icons';
+import { ChevronLeftIcon, ChevronRightIcon, DocumentIcon } from '@/components/icons';
+import { RdIcon } from '@/components/postq/RdIcon';
+import { useBackHandler } from '@/components/postq/backOverride';
+import { useHeaderHeight } from '@/hooks/useHeaderHeight';
 
 import { ticketsApi } from '../../api/tickets';
 
@@ -44,6 +47,10 @@ function getItems(message: MessageLike): MediaItem[] {
   return [];
 }
 
+/**
+ * Attachments inside a chat bubble: photos as small thumbnails (a screenshot
+ * shouldn't take the whole chat), a tap opens them full screen.
+ */
 export function MessageMediaGrid({
   message,
   translateError = 'Failed to load image',
@@ -56,98 +63,77 @@ export function MessageMediaGrid({
   const photoItems = items.filter((i) => i.type === 'photo');
   const otherItems = items.filter((i) => i.type !== 'photo');
 
-  const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const closeViewer = useCallback(() => setViewerIndex(null), []);
 
-  const openFullscreen = useCallback((idx: number) => setFullscreenIndex(idx), []);
-  const closeFullscreen = useCallback(() => setFullscreenIndex(null), []);
-
-  // Escape + arrow keys for fullscreen nav
-  useEffect(() => {
-    if (fullscreenIndex === null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setFullscreenIndex(null);
-      else if (e.key === 'ArrowLeft' && fullscreenIndex > 0)
-        setFullscreenIndex(fullscreenIndex - 1);
-      else if (e.key === 'ArrowRight' && fullscreenIndex < photoItems.length - 1)
-        setFullscreenIndex(fullscreenIndex + 1);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [fullscreenIndex, photoItems.length]);
-
-  // Lock body scroll while fullscreen overlay is open (mobile mainly).
-  useEffect(() => {
-    if (fullscreenIndex === null) return undefined;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [fullscreenIndex]);
-
-  // All hooks have been called — safe to early-return now.
   if (items.length === 0) return null;
-
-  // Grid layout based on photo count
-  let gridClass = '';
-  if (photoItems.length === 1) {
-    gridClass = 'grid-cols-1';
-  } else if (photoItems.length === 2) {
-    gridClass = 'grid-cols-2';
-  } else if (photoItems.length === 3) {
-    gridClass = 'grid-cols-3';
-  } else {
-    gridClass = 'grid-cols-2'; // 4+ → 2x2
-  }
 
   const visiblePhotos = photoItems.slice(0, 4);
   const hiddenCount = photoItems.length - visiblePhotos.length;
+  const single = photoItems.length === 1;
 
   return (
-    <div className="mt-3 space-y-2">
-      {photoItems.length > 0 && (
-        <div className={`grid gap-1 ${gridClass}`}>
-          {visiblePhotos.map((item, visIdx) => {
-            // visIdx is always the correct index into photoItems (visible prefix)
-            const originalIdx = visIdx;
-            const isLastVisible = visIdx === visiblePhotos.length - 1 && hiddenCount > 0;
-            return (
-              <button
-                key={`${item.file_id}-${visIdx}`}
-                type="button"
-                className="group relative aspect-square overflow-hidden rounded-lg bg-dark-800"
-                onClick={() => openFullscreen(originalIdx)}
-              >
-                <img
-                  src={ticketsApi.getMediaUrl(item.file_id, item.token)}
-                  alt={item.caption || 'Attached photo'}
-                  className="h-full w-full object-cover transition-opacity group-hover:opacity-90"
-                  loading="lazy"
-                />
-                {isLastVisible && (
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-dark-950/60 text-2xl font-semibold text-white">
-                    +{hiddenCount}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
+    <div className="flex flex-col gap-2">
+      {single ? (
+        <button
+          type="button"
+          onClick={() => setViewerIndex(0)}
+          aria-label={t('postq.media.open', 'Открыть фото')}
+          className="block w-fit max-w-full overflow-hidden rounded-[12px] bg-[var(--rd-chip)]"
+        >
+          <img
+            src={ticketsApi.getMediaUrl(photoItems[0].file_id, photoItems[0].token)}
+            alt={photoItems[0].caption || ''}
+            className="block max-h-[220px] min-h-[64px] w-auto min-w-[64px] max-w-full object-cover transition-opacity hover:opacity-90"
+            loading="lazy"
+          />
+        </button>
+      ) : (
+        photoItems.length > 0 && (
+          <div
+            className={`grid w-[min(100%,260px)] gap-1 ${photoItems.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}
+          >
+            {visiblePhotos.map((item, idx) => {
+              const more = idx === visiblePhotos.length - 1 && hiddenCount > 0;
+              return (
+                <button
+                  key={`${item.file_id}-${idx}`}
+                  type="button"
+                  onClick={() => setViewerIndex(idx)}
+                  aria-label={t('postq.media.open', 'Открыть фото')}
+                  className="relative aspect-square overflow-hidden rounded-[10px] bg-[var(--rd-chip)]"
+                >
+                  <img
+                    src={ticketsApi.getMediaUrl(item.file_id, item.token)}
+                    alt={item.caption || ''}
+                    className="h-full w-full object-cover transition-opacity hover:opacity-90"
+                    loading="lazy"
+                  />
+                  {more && (
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/55 text-[20px] font-semibold text-white">
+                      +{hiddenCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )
       )}
 
-      {/* Non-photo media rendered inline */}
       {otherItems.map((item) => {
         const mediaUrl = ticketsApi.getMediaUrl(item.file_id, item.token);
         if (item.type === 'video') {
           return (
-            <div key={item.file_id}>
+            <div key={item.file_id} className="flex flex-col gap-1">
               <video
                 src={mediaUrl}
                 controls
-                className="max-h-64 max-w-full rounded-lg"
+                playsInline
+                className="max-h-[220px] max-w-full rounded-[12px] bg-black"
                 preload="metadata"
               />
-              {item.caption && <p className="mt-1 text-xs text-dark-400">{item.caption}</p>}
+              {item.caption && <p className="rd-p-sm text-[var(--rd-caption)]">{item.caption}</p>}
             </div>
           );
         }
@@ -157,11 +143,10 @@ export function MessageMediaGrid({
             href={mediaUrl}
             target="_blank"
             rel="noopener noreferrer"
-            // Длинное имя файла переносится внутри пузыря, а не выталкивает его
-            // за карточку; без подписи — «Скачать файл», а не «Download document».
-            className="inline-flex max-w-full items-center gap-2 rounded-lg bg-dark-700 px-3 py-2 text-sm text-dark-200 transition-colors hover:bg-dark-600"
+            // A long file name wraps inside the bubble instead of pushing it out.
+            className="rd-p-md inline-flex max-w-full items-center gap-2 self-start rounded-[12px] bg-[var(--rd-chip)] px-3 py-2 text-[var(--rd-heading)] transition-colors hover:bg-[var(--rd-chip-hover)]"
           >
-            <DocumentIcon className="h-4 w-4" />
+            <DocumentIcon className="h-4 w-4 shrink-0" />
             <span className="min-w-0 [overflow-wrap:anywhere]">
               {item.caption || t('support.downloadFile')}
             </span>
@@ -169,68 +154,168 @@ export function MessageMediaGrid({
         );
       })}
 
-      {fullscreenIndex !== null &&
-        photoItems[fullscreenIndex] &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-[9999] bg-dark-950"
-            style={{ touchAction: 'pan-x pan-y pinch-zoom' }}
-          >
-            <button
-              type="button"
-              className="absolute right-4 top-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white text-black shadow-xl transition-colors hover:bg-gray-200"
-              onClick={closeFullscreen}
-            >
-              <XIcon className="h-5 w-5" />
-            </button>
+      {viewerIndex !== null && photoItems[viewerIndex] && (
+        <PhotoViewer
+          items={photoItems}
+          index={viewerIndex}
+          onIndex={setViewerIndex}
+          onClose={closeViewer}
+        />
+      )}
 
-            {photoItems.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  disabled={fullscreenIndex === 0}
-                  onClick={() => setFullscreenIndex(fullscreenIndex - 1)}
-                  className="absolute left-4 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-black shadow-xl transition-colors hover:bg-white disabled:opacity-30"
-                >
-                  <ChevronLeftIcon className="h-5 w-5" />
-                </button>
-                <button
-                  type="button"
-                  disabled={fullscreenIndex >= photoItems.length - 1}
-                  onClick={() => setFullscreenIndex(fullscreenIndex + 1)}
-                  className="absolute right-4 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-black shadow-xl transition-colors hover:bg-white disabled:opacity-30"
-                >
-                  <ChevronRightIcon className="h-5 w-5" />
-                </button>
-                <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 rounded-full bg-dark-950/70 px-3 py-1 text-sm text-white">
-                  {fullscreenIndex + 1} / {photoItems.length}
-                </div>
-              </>
-            )}
-
-            <div
-              className="flex h-full w-full items-center justify-center overflow-auto"
-              onClick={closeFullscreen}
-            >
-              <img
-                src={ticketsApi.getMediaUrl(
-                  photoItems[fullscreenIndex].file_id,
-                  photoItems[fullscreenIndex].token,
-                )}
-                alt={photoItems[fullscreenIndex].caption || 'Attached photo'}
-                className="max-h-full max-w-full object-contain"
-                style={{ touchAction: 'pinch-zoom' }}
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-          </div>,
-          document.body,
-        )}
-
-      {/* Fallback: error state */}
       {photoItems.length === 0 && otherItems.length === 0 && (
-        <div className="text-xs text-dark-400">{translateError}</div>
+        <div className="rd-p-sm text-[var(--rd-caption)]">{translateError}</div>
       )}
     </div>
+  );
+}
+
+/**
+ * Full-screen photo. «Назад» closes it everywhere: its own button (below the
+ * Telegram fullscreen controls), Telegram's native Back, Escape, a swipe down
+ * or a tap beside the photo. Swipe or arrows go between the message's photos.
+ */
+function PhotoViewer({
+  items,
+  index,
+  onIndex,
+  onClose,
+}: {
+  items: MediaItem[];
+  index: number;
+  onIndex: (i: number) => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const { topSafeArea } = useHeaderHeight();
+  const item = items[index];
+  const hasPrev = index > 0;
+  const hasNext = index < items.length - 1;
+
+  useBackHandler(true, onClose);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      else if (e.key === 'ArrowLeft' && hasPrev) onIndex(index - 1);
+      else if (e.key === 'ArrowRight' && hasNext) onIndex(index + 1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [index, hasPrev, hasNext, onIndex, onClose]);
+
+  // The page under it doesn't scroll while the photo is open.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  // One-finger swipes: sideways — the next/previous photo, down — close.
+  // Two fingers are a pinch-zoom and are left to the browser.
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    touch.current =
+      e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const start = touch.current;
+    touch.current = null;
+    if (!start || e.changedTouches.length !== 1) return;
+    const dx = e.changedTouches[0].clientX - start.x;
+    const dy = e.changedTouches[0].clientY - start.y;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0 && hasNext) onIndex(index + 1);
+      else if (dx > 0 && hasPrev) onIndex(index - 1);
+    } else if (dy > 90 && dy > Math.abs(dx) * 1.5) {
+      onClose();
+    }
+  };
+
+  const glassBtn =
+    'flex size-12 shrink-0 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition-colors hover:bg-white/25 active:scale-[0.96] disabled:opacity-30';
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('postq.media.viewer', 'Просмотр фото')}
+      className="fixed inset-0 z-[9999] flex flex-col bg-black/95"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      <div
+        className="flex shrink-0 items-center gap-3 px-4 pb-3"
+        style={{
+          paddingTop: `calc(max(${topSafeArea}px, env(safe-area-inset-top, 0px)) + 12px)`,
+        }}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={t('common.back')}
+          className="flex h-12 items-center gap-1 rounded-full bg-white/15 pl-2 pr-4 text-white backdrop-blur-md transition-colors hover:bg-white/25 active:scale-[0.96]"
+        >
+          <RdIcon name="cabinet/chevron-up" size={24} className="-rotate-90" />
+          <span className="rd-p-md font-medium">{t('common.back')}</span>
+        </button>
+        {items.length > 1 && (
+          <span className="rd-p-md ml-auto text-white/80">
+            {index + 1} / {items.length}
+          </span>
+        )}
+      </div>
+
+      <div
+        className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-[max(16px,env(safe-area-inset-bottom,0px))]"
+        onClick={onClose}
+      >
+        <img
+          key={item.file_id}
+          src={ticketsApi.getMediaUrl(item.file_id, item.token)}
+          alt={item.caption || ''}
+          className="max-h-full max-w-full select-none object-contain"
+          style={{ touchAction: 'pinch-zoom' }}
+          onClick={(e) => e.stopPropagation()}
+          draggable={false}
+        />
+        {items.length > 1 && (
+          <>
+            <button
+              type="button"
+              disabled={!hasPrev}
+              onClick={(e) => {
+                e.stopPropagation();
+                onIndex(index - 1);
+              }}
+              aria-label={t('postq.media.prev', 'Предыдущее фото')}
+              className={`${glassBtn} absolute left-4 top-1/2 hidden -translate-y-1/2 sm:flex`}
+            >
+              <ChevronLeftIcon className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              disabled={!hasNext}
+              onClick={(e) => {
+                e.stopPropagation();
+                onIndex(index + 1);
+              }}
+              aria-label={t('postq.media.next', 'Следующее фото')}
+              className={`${glassBtn} absolute right-4 top-1/2 hidden -translate-y-1/2 sm:flex`}
+            >
+              <ChevronRightIcon className="h-5 w-5" />
+            </button>
+          </>
+        )}
+      </div>
+      {item.caption && (
+        <p className="rd-p-md shrink-0 px-4 pb-[max(16px,env(safe-area-inset-bottom,0px))] text-center text-white/80">
+          {item.caption}
+        </p>
+      )}
+    </div>,
+    document.body,
   );
 }
