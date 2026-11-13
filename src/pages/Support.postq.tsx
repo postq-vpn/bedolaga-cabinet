@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ticketsApi } from '../api/tickets';
+import { ticketNotificationsApi } from '../api/ticketNotifications';
 import { MessageMediaGrid } from '../components/tickets/MessageMediaGrid';
 import { infoApi } from '../api/info';
 import { useAuthStore } from '../store/auth';
@@ -182,6 +183,48 @@ export default function Support() {
   const messagesRef = useRef<HTMLDivElement>(null);
   const replyRef = useRef<HTMLTextAreaElement>(null);
   const lastMessageId = ticketDetail?.messages?.[ticketDetail.messages.length - 1]?.id;
+
+  // Reading a ticket clears its notifications — otherwise the support badge in
+  // the header / bottom nav stays lit (on desktop there's no bell to clear it).
+  const refreshNotifications = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['ticket-notifications-count'] });
+    queryClient.invalidateQueries({ queryKey: ['ticket-notifications'] });
+  }, [queryClient]);
+  const openTicketId = ticketDetail?.id;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new message re-marks the ticket
+  useEffect(() => {
+    if (!openTicketId) return;
+    ticketNotificationsApi
+      .markTicketAsRead(openTicketId)
+      .then((r) => r.marked_count > 0 && refreshNotifications())
+      .catch(() => {});
+  }, [openTicketId, lastMessageId, refreshNotifications]);
+
+  // Notifications left over from tickets that are already closed: nothing to
+  // read there any more, so don't keep the badge on for them.
+  const closedIds = (tickets?.items ?? [])
+    .filter((tk) => tk.status === 'closed')
+    .map((tk) => tk.id)
+    .join(',');
+  useEffect(() => {
+    if (!closedIds) return;
+    const closed = new Set(closedIds.split(',').map(Number));
+    let cancelled = false;
+    ticketNotificationsApi
+      .getNotifications(true, 100)
+      .then(async (list) => {
+        const stale = [
+          ...new Set(list.items.filter((n) => closed.has(n.ticket_id)).map((n) => n.ticket_id)),
+        ];
+        if (!stale.length || cancelled) return;
+        await Promise.all(stale.map((id) => ticketNotificationsApi.markTicketAsRead(id)));
+        if (!cancelled) refreshNotifications();
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [closedIds, refreshNotifications]);
   useEffect(() => {
     if (!lastMessageId) return;
     requestAnimationFrame(() => {
