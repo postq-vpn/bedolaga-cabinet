@@ -15,7 +15,6 @@ import { PostqStepsBlock } from './blocks/PostqStepsBlock';
 import { CopyField } from '@/components/postq/ui';
 import { RdIcon } from '@/components/postq/RdIcon';
 import TvQuickConnect from './TvQuickConnect';
-import { BackIcon } from '@/components/icons';
 
 const platformOrder = ['ios', 'android', 'windows', 'macos', 'linux', 'androidTV', 'appleTV'];
 
@@ -50,8 +49,6 @@ interface Props {
 export default function InstallationGuide({
   appConfig,
   onOpenDeepLink,
-  isTelegramWebApp,
-  onGoBack,
   onOpenQR,
   username,
 }: Props) {
@@ -235,16 +232,7 @@ export default function InstallationGuide({
 
   return (
     <div className="flex flex-col gap-8 pb-6">
-      {!isTelegramWebApp && (
-        <button
-          type="button"
-          onClick={onGoBack}
-          className="rd-p-md flex items-center gap-2 self-start font-medium text-[var(--rd-caption)] transition-colors hover:text-[var(--rd-heading)]"
-        >
-          <BackIcon className="h-5 w-5" />
-          {t('postq.purchase.toCabinet')}
-        </button>
-      )}
+      {/* «Назад» lives in the header (components/postq/BackButton). */}
       <div className="flex flex-col gap-3">
         <h1 className="rd-h3 text-[var(--rd-heading)]">
           {getBaseTranslation('installationGuideHeader', 'subscription.connection.title')}
