@@ -6,6 +6,7 @@ import { subscriptionApi } from '@/api/subscription';
 import { useCurrency } from '@/hooks/useCurrency';
 import { getErrorMessage, getInsufficientBalanceError } from '@/utils/subscriptionHelpers';
 import { uiLocale } from '@/utils/uiLocale';
+import { clientAppLabel, platformIcon } from '@/utils/clientApp';
 import { cn } from '@/lib/utils';
 import { RdIcon } from '../RdIcon';
 import { RdDialog } from '../RdDialog';
@@ -16,15 +17,6 @@ const CONFIRM_WINDOW = 5;
 
 const MENU_ITEM =
   'rd-p-md flex cursor-pointer select-none rounded-[var(--rd-radius-sm)] px-4 py-3 text-[var(--rd-heading)] outline-none transition-colors data-[highlighted]:bg-[var(--rd-field)]';
-
-function platformIcon(platform: string) {
-  const p = platform.toLowerCase();
-  if (/ios|iphone|ipad|mac|darwin/.test(p)) return 'cabinet/os-apple-fill';
-  if (/android/.test(p)) return 'cabinet/os-android-fill';
-  if (/windows|win/.test(p)) return 'cabinet/os-windows-fill';
-  if (/tv/.test(p)) return 'cabinet/os-tv-fill';
-  return 'cabinet/os-windows-fill';
-}
 
 /**
  * Device management from the dashboard's «Изменить» (no frame yet, same
@@ -281,6 +273,7 @@ export function DevicesDialog({
                         <span className="rd-p-sm truncate text-[var(--rd-caption)]">
                           {[
                             d.platform,
+                            d.app_version ? `${clientAppLabel(d.app_name)} ${d.app_version}` : null,
                             d.created_at
                               ? new Date(d.created_at).toLocaleDateString(uiLocale(), {
                                   day: 'numeric',
@@ -291,6 +284,14 @@ export function DevicesDialog({
                             .filter(Boolean)
                             .join(' · ')}
                         </span>
+                        {d.app_outdated && (
+                          <span className="rd-p-sm flex min-w-0 items-center gap-1.5 text-[var(--rd-error-text)]">
+                            <RdIcon name="cabinet/circle-alert" size={16} className="shrink-0" />
+                            {t('postq.devices.outdatedBadge', {
+                              app: clientAppLabel(d.app_name),
+                            })}
+                          </span>
+                        )}
                       </div>
                     )}
                     {confirmHwid !== d.hwid && (

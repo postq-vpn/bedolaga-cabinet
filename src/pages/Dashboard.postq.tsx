@@ -25,6 +25,8 @@ import { safeLocal } from '../utils/safeStorage';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { BalanceCard } from '../components/postq/dashboard/BalanceCard';
 import { GiftBanner } from '../components/postq/dashboard/GiftBanner';
+import { OutdatedClientBanner } from '../components/postq/dashboard/OutdatedClientBanner';
+import { outdatedDevices } from '../utils/clientApp';
 import { ReferralCard } from '../components/postq/dashboard/ReferralCard';
 import { useDashboardAccent } from '@/components/postq/dashboardAccent';
 
@@ -108,6 +110,18 @@ export default function Dashboard() {
       staleTime: API.BALANCE_STALE_TIME_MS,
     })),
   });
+
+  // Устройства со старым VPN-клиентом (флаг ставит бот) — из тех же запросов,
+  // что уже идут на главной; в мультитарифе одно устройство может числиться
+  // в нескольких подписках, поэтому дедуп по hwid.
+  const staleClientDevices = useMemo(() => {
+    const all = [
+      ...(devicesData?.devices ?? []),
+      ...deviceQueries.flatMap((q) => q.data?.devices ?? []),
+    ];
+    const seen = new Set<string>();
+    return outdatedDevices(all).filter((d) => !seen.has(d.hwid) && seen.add(d.hwid));
+  }, [devicesData, deviceQueries]);
 
   // Подписка, у которой разбираем исчерпанный лимит устройств.
   const [deviceLimitSubId, setDeviceLimitSubId] = useState<number | null>(null);
@@ -260,6 +274,12 @@ export default function Dashboard() {
         target: 'balance',
         title: t('onboarding.steps.balance.title'),
         description: t('onboarding.steps.balance.description'),
+        placement: 'bottom',
+      },
+      {
+        target: 'support',
+        title: t('onboarding.steps.support.title'),
+        description: t('onboarding.steps.support.description'),
         placement: 'bottom',
       },
     ];
@@ -429,6 +449,7 @@ export default function Dashboard() {
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col gap-6 lg:gap-8">
+          <OutdatedClientBanner devices={staleClientDevices} />
           {subscriptionBlock}
           {noSubscriptionBlock}
           {giftEnabled && <GiftBanner />}

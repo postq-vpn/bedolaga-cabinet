@@ -8292,6 +8292,7 @@
   "onboarding": {
     "skip": "رد کردن",
     "finish": "پایان",
+    "progress": "{{current}} از {{total}}",
     "steps": {
       "welcome": {
         "title": "خوش آمدید!",
@@ -8312,6 +8313,10 @@
       "quickActions": {
         "title": "دسترسی سریع",
         "description": "از این دکمه‌ها برای دسترسی سریع به امکانات اصلی استفاده کنید: شارژ موجودی، تمدید اشتراک و دعوت دوستان."
+      },
+      "support": {
+        "title": "پشتیبانی",
+        "description": "مشکلی پیش آمده یا سؤالی دارید؟ به ما پیام دهید تا کمکتان کنیم."
       }
     }
   },
@@ -10236,7 +10241,18 @@
       "unit_one": "دستگاه",
       "unit_other": "دستگاه",
       "actions": "Device actions",
-      "removeQuestion": "Remove “{{name}}”?"
+      "removeQuestion": "Remove “{{name}}”?",
+      "outdatedBadge": "Outdated {{app}} version, VPN may not work",
+      "update": "Update",
+      "outdatedTitleSingle": "Update {{app}} on {{device}}",
+      "outdatedTitle_one": "Update {{app}} on {{count}} device",
+      "outdatedTitle_other": "Update {{app}} on {{count}} devices",
+      "outdatedTextSingle": "VPN may stop working on version {{current}}.\nInstall {{version}} or newer, then refresh the subscription in the app.",
+      "outdatedText": "VPN may stop working on older versions.\nInstall {{version}} or newer, then refresh the subscription in the app.",
+      "outdatedShortSingle": "Install {{version}} or newer — VPN may not work on {{current}}.",
+      "outdatedShort": "Install {{version}} or newer — VPN may not work on older versions.",
+      "regionShort": "Change App Store region",
+      "supportShort": "Support"
     },
     "purchase": {
       "step1": "Subscription period",

@@ -111,6 +111,7 @@ export function CabinetHeader() {
         )}
         <Link
           to="/support"
+          data-onboarding="support"
           aria-current={isActive('/support') ? 'page' : undefined}
           className="rd-pill relative gap-3"
         >

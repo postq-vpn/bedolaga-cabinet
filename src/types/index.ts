@@ -164,6 +164,18 @@ export interface Device {
    * to `device_model` / `platform` for display.
    */
   local_name?: string | null;
+  /** Raw client User-Agent, e.g. `Happ/6.4.0/ios/2611051057585`. */
+  user_agent?: string | null;
+  os_version?: string | null;
+  /** Parsed from the User-Agent: `happ`, `6.4.0`. */
+  app_name?: string | null;
+  app_version?: string | null;
+  /** Minimum supported client version for this platform (bot setting). */
+  min_app_version?: string | null;
+  /** The client is older than `min_app_version` and was active recently. */
+  app_outdated?: boolean;
+  /** Store / download link for the update, when the bot has one. */
+  update_url?: string | null;
 }
 
 export interface RenewalOption {

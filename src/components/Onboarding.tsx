@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { safeLocal } from '../utils/safeStorage';
+import { cn } from '../lib/utils';
 
 interface OnboardingStep {
   target: string; // data-onboarding attribute value
@@ -18,6 +19,14 @@ interface OnboardingProps {
 }
 
 const STORAGE_KEY = 'onboarding_completed';
+
+/** Gap between the target and the spotlight edge. */
+const SPOT_PAD = 8;
+/** Gap between the spotlight and the tooltip (room for the arrow). */
+const GAP = 16;
+/** Minimum distance from the viewport edge. */
+const EDGE = 16;
+const MAX_WIDTH = 344;
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useOnboarding() {
@@ -44,11 +53,28 @@ function findTarget(name: string): Element | null {
   return all.find((el) => el.getClientRects().length > 0) ?? all[0] ?? null;
 }
 
+/** The target's own corner radius, so the cut-out follows its shape. */
+function targetRadius(el: Element): number {
+  const radius = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0;
+  return Math.min(radius, 32) + SPOT_PAD;
+}
+
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+type Side = 'top' | 'bottom';
+
+/**
+ * Tour over the dashboard: the target sits in a cut-out of the dimmed page,
+ * the tooltip card points at it. Only the cut-out's shadow dims the page, so
+ * the target itself stays at full brightness.
+ */
 export default function Onboarding({ steps, onComplete, onSkip }: OnboardingProps) {
   const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
-  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [target, setTarget] = useState<{ rect: DOMRect; radius: number } | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [tooltipHeight, setTooltipHeight] = useState(180);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   const onCompleteRef = useRef(onComplete);
@@ -57,26 +83,34 @@ export default function Onboarding({ steps, onComplete, onSkip }: OnboardingProp
   }, [onComplete]);
 
   const step = steps[currentStep];
+  const isLast = currentStep === steps.length - 1;
 
+  /** Leave the page where the tour found it — at the top. */
+  const finish = useCallback((done: () => void) => {
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    done();
+  }, []);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ищем цель только при смене шага, а не на каждый ре-рендер списка шагов
   useEffect(() => {
     let cancelled = false;
     let attempts = 0;
     const maxAttempts = 6;
-    const isLastStep = currentStep === steps.length - 1;
 
     setIsVisible(false);
-    setTargetRect(null);
 
     const tryFind = () => {
       if (cancelled) return;
-      const target = findTarget(step.target);
-      if (target) {
-        const rect = target.getBoundingClientRect();
-        setTargetRect(rect);
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const el = findTarget(step.target);
+      if (el) {
+        el.scrollIntoView({
+          behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+          block: 'center',
+        });
+        setTarget({ rect: el.getBoundingClientRect(), radius: targetRadius(el) });
         window.setTimeout(() => {
           if (!cancelled) setIsVisible(true);
-        }, 100);
+        }, 120);
         return;
       }
       attempts += 1;
@@ -84,55 +118,59 @@ export default function Onboarding({ steps, onComplete, onSkip }: OnboardingProp
         window.setTimeout(tryFind, 200);
         return;
       }
-      if (isLastStep) {
+      if (currentStep === steps.length - 1) {
         onCompleteRef.current();
       } else {
         setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
       }
     };
 
-    const timer = window.setTimeout(tryFind, 300);
+    const timer = window.setTimeout(tryFind, currentStep === 0 ? 300 : 0);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step.target]);
 
-  // Recalculate position on resize/scroll
+  // Follow the target while the page scrolls (scrollIntoView) or resizes.
   useEffect(() => {
-    const updatePosition = () => {
-      const target = findTarget(step.target);
-      if (target) {
-        setTargetRect(target.getBoundingClientRect());
-      }
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const el = findTarget(step.target);
+        if (el) setTarget({ rect: el.getBoundingClientRect(), radius: targetRadius(el) });
+      });
     };
-
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
     return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
     };
   }, [step.target]);
+
+  // Real tooltip height for placement (text length differs per step/locale):
+  // the card is one node for the whole tour, the observer follows its size.
+  useLayoutEffect(() => {
+    const node = tooltipRef.current;
+    if (!node) return;
+    setTooltipHeight(node.offsetHeight);
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => setTooltipHeight(node.offsetHeight));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      onComplete();
-    }
+    if (isLast) finish(onComplete);
+    else setCurrentStep(currentStep + 1);
   };
-
   const handlePrev = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
+    if (currentStep > 0) setCurrentStep(currentStep - 1);
   };
-
-  const handleSkip = () => {
-    onSkip();
-  };
+  const handleSkip = () => finish(onSkip);
 
   // Trap focus inside the tooltip while the tour runs; Esc skips it.
   // lockScroll stays off so scrollIntoView can bring each target into view.
@@ -145,158 +183,171 @@ export default function Onboarding({ steps, onComplete, onSkip }: OnboardingProp
     [trapRef],
   );
 
-  // Calculate tooltip position
-  const getTooltipStyle = (): React.CSSProperties => {
-    if (!targetRect) return { opacity: 0 };
+  // ── Layout ────────────────────────────────────────────────────────────
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 1024;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 768;
+  const width = Math.min(MAX_WIDTH, vw - EDGE * 2);
 
-    const padding = 16;
-    const tooltipWidth = 320;
-    const tooltipHeight = tooltipRef.current?.offsetHeight || 150;
+  let tooltipStyle: React.CSSProperties = { width, top: -9999, left: 0 };
+  let side: Side = 'bottom';
+  let arrowX = width / 2;
 
-    let top = 0;
-    let left = 0;
+  if (target) {
+    const { rect } = target;
+    const spotTop = rect.top - SPOT_PAD;
+    const spotBottom = rect.bottom + SPOT_PAD;
+    const roomBelow = vh - spotBottom - GAP - EDGE;
+    const roomAbove = spotTop - GAP - EDGE;
+    // Left/right placements read badly on phones and the dashboard has no
+    // side room anyway — they fall back to above/below.
+    const preferred: Side = step.placement === 'top' ? 'top' : 'bottom';
+    side =
+      preferred === 'bottom'
+        ? roomBelow >= tooltipHeight || roomBelow >= roomAbove
+          ? 'bottom'
+          : 'top'
+        : roomAbove >= tooltipHeight || roomAbove >= roomBelow
+          ? 'top'
+          : 'bottom';
 
-    switch (step.placement) {
-      case 'bottom':
-        top = targetRect.bottom + padding;
-        left = targetRect.left + targetRect.width / 2 - tooltipWidth / 2;
-        break;
-      case 'top':
-        top = targetRect.top - tooltipHeight - padding;
-        left = targetRect.left + targetRect.width / 2 - tooltipWidth / 2;
-        break;
-      case 'left':
-        top = targetRect.top + targetRect.height / 2 - tooltipHeight / 2;
-        left = targetRect.left - tooltipWidth - padding;
-        break;
-      case 'right':
-        top = targetRect.top + targetRect.height / 2 - tooltipHeight / 2;
-        left = targetRect.right + padding;
-        break;
-    }
+    let top = side === 'bottom' ? spotBottom + GAP : spotTop - GAP - tooltipHeight;
+    top = Math.max(EDGE, Math.min(top, vh - EDGE - tooltipHeight));
 
-    // Keep within viewport
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    const centerX = rect.left + rect.width / 2;
+    const left = Math.max(EDGE, Math.min(centerX - width / 2, vw - EDGE - width));
+    arrowX = Math.max(28, Math.min(centerX - left, width - 28));
 
-    if (left < padding) left = padding;
-    if (left + tooltipWidth > viewportWidth - padding) {
-      left = viewportWidth - tooltipWidth - padding;
-    }
-    if (top < padding) top = padding;
-    if (top + tooltipHeight > viewportHeight - padding) {
-      top = viewportHeight - tooltipHeight - padding;
-    }
+    tooltipStyle = { width, top, left };
+  }
 
-    return {
-      top,
-      left,
-      width: tooltipWidth,
-      opacity: isVisible ? 1 : 0,
-      transform: isVisible ? 'scale(1)' : 'scale(0.95)',
-    };
-  };
-
-  // Spotlight style
-  const getSpotlightStyle = (): React.CSSProperties => {
-    if (!targetRect) return { opacity: 0 };
-
-    const padding = 8;
-    return {
-      top: targetRect.top - padding,
-      left: targetRect.left - padding,
-      width: targetRect.width + padding * 2,
-      height: targetRect.height + padding * 2,
-      opacity: isVisible ? 1 : 0,
-    };
-  };
+  const spotlightStyle: React.CSSProperties = target
+    ? {
+        top: target.rect.top - SPOT_PAD,
+        left: target.rect.left - SPOT_PAD,
+        width: target.rect.width + SPOT_PAD * 2,
+        height: target.rect.height + SPOT_PAD * 2,
+        borderRadius: target.radius,
+      }
+    : { top: vh / 2, left: vw / 2, width: 0, height: 0 };
 
   return createPortal(
-    <div className="onboarding-overlay" style={{ opacity: isVisible ? 1 : 0 }}>
-      {/* Spotlight */}
+    <div
+      className={cn(
+        'fixed inset-0 z-[100] transition-opacity duration-300 motion-reduce:transition-none',
+        isVisible ? 'opacity-100' : 'pointer-events-none opacity-0',
+      )}
+    >
+      {/* Swallows clicks on the dimmed page: only the tour's controls work. */}
+      <div aria-hidden className="absolute inset-0" />
+
+      {/* Cut-out: its huge shadow is the dim layer, the inside stays clear. */}
       <div
-        className="onboarding-spotlight"
+        aria-hidden
+        className="pointer-events-none absolute transition-[top,left,width,height,border-radius] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
         style={{
-          ...getSpotlightStyle(),
-          pointerEvents: isVisible ? 'auto' : 'none',
+          ...spotlightStyle,
+          boxShadow: '0 0 0 2px var(--rd-action), 0 0 0 9999px rgba(10, 10, 12, 0.62)',
         }}
       />
 
-      {/* Tooltip */}
+      {/* Tapping the highlighted element moves the tour on. */}
+      {target && (
+        <div
+          aria-hidden
+          className="absolute cursor-pointer"
+          style={{
+            top: target.rect.top,
+            left: target.rect.left,
+            width: target.rect.width,
+            height: target.rect.height,
+          }}
+          onClick={handleNext}
+        />
+      )}
+
       <div
         ref={setTooltipNode}
         role="dialog"
         aria-modal="true"
         aria-labelledby="onboarding-title"
         aria-describedby="onboarding-desc"
-        className={`onboarding-tooltip tooltip-${step.placement}`}
-        style={{
-          ...getTooltipStyle(),
-          pointerEvents: isVisible ? 'auto' : 'none',
-        }}
+        className={cn(
+          'absolute flex flex-col gap-5 rounded-[var(--rd-radius-md)] bg-[var(--rd-surface)] p-6 shadow-[0_16px_48px_rgba(0,0,0,0.24)] transition-[top,left,opacity,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none',
+          isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0',
+        )}
+        style={tooltipStyle}
       >
-        {/* Progress indicator */}
-        <div className="mb-4 flex items-center gap-1.5">
-          {steps.map((s, index) => (
-            <div
-              key={s.target}
-              className={`h-1 rounded-full transition-all duration-300 ${
-                index === currentStep
-                  ? 'w-6 bg-accent-500'
-                  : index < currentStep
-                    ? 'w-2 bg-accent-500/50'
-                    : 'w-2 bg-dark-700'
-              }`}
-            />
-          ))}
+        {/* Arrow toward the target, wherever the card got clamped to. */}
+        <span
+          aria-hidden
+          className={cn(
+            'absolute size-4 rotate-45 rounded-[3px] bg-[var(--rd-surface)]',
+            side === 'bottom' ? '-top-1.5' : '-bottom-1.5',
+          )}
+          style={{ left: arrowX - 8 }}
+        />
+
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-1.5" aria-hidden>
+            {steps.map((s, index) => (
+              <span
+                key={s.target}
+                className={cn(
+                  'h-1.5 rounded-full transition-all duration-300 motion-reduce:transition-none',
+                  index === currentStep
+                    ? 'w-6 bg-[var(--rd-action)]'
+                    : index < currentStep
+                      ? 'w-1.5 bg-[var(--rd-action)] opacity-40'
+                      : 'w-1.5 bg-[var(--rd-border)]',
+                )}
+              />
+            ))}
+          </div>
+          <span className="rd-p-sm text-[var(--rd-caption)]">
+            {t('onboarding.progress', {
+              current: currentStep + 1,
+              total: steps.length,
+              defaultValue: '{{current}} of {{total}}',
+            })}
+          </span>
         </div>
 
-        {/* Content */}
-        <h3 id="onboarding-title" className="mb-2 text-lg font-semibold text-dark-50">
-          {step.title}
-        </h3>
-        <p id="onboarding-desc" className="mb-5 text-sm text-dark-400">
-          {step.description}
-        </p>
-
-        {/* Actions */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={handleSkip}
-            className="text-sm text-dark-500 transition-colors hover:text-dark-300"
+        <div className="flex flex-col gap-2">
+          <h3
+            id="onboarding-title"
+            className="text-balance text-[20px] font-bold leading-6 text-[var(--rd-heading)]"
           >
+            {step.title}
+          </h3>
+          <p id="onboarding-desc" className="rd-p-md text-pretty text-[var(--rd-caption)]">
+            {step.description}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <button type="button" onClick={handleSkip} className="rd-link rd-p-md">
             {t('onboarding.skip', 'Skip')}
           </button>
-
           <div className="flex gap-2">
             {currentStep > 0 && (
-              <button onClick={handlePrev} className="btn-ghost px-3 py-1.5 text-sm">
+              <button
+                type="button"
+                onClick={handlePrev}
+                className="rd-btn-soft !min-h-11 !rounded-[var(--rd-radius-sm)] !px-4"
+              >
                 {t('common.back', 'Back')}
               </button>
             )}
-            <button onClick={handleNext} className="btn-primary px-4 py-1.5 text-sm">
-              {currentStep === steps.length - 1
-                ? t('onboarding.finish', 'Finish')
-                : t('common.next', 'Next')}
+            <button
+              type="button"
+              onClick={handleNext}
+              className="rd-btn !min-h-11 !rounded-[var(--rd-radius-sm)] !px-5"
+            >
+              {isLast ? t('onboarding.finish', 'Finish') : t('common.next', 'Next')}
             </button>
           </div>
         </div>
       </div>
-
-      {/* Click handler to advance on target click — only when overlay is fully visible */}
-      {targetRect && isVisible && (
-        <div
-          aria-hidden="true"
-          className="absolute cursor-pointer"
-          style={{
-            top: targetRect.top,
-            left: targetRect.left,
-            width: targetRect.width,
-            height: targetRect.height,
-          }}
-          onClick={handleNext}
-        />
-      )}
     </div>,
     document.body,
   );

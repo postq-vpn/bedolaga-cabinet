@@ -8164,6 +8164,7 @@
   "onboarding": {
     "skip": "跳过",
     "finish": "完成",
+    "progress": "{{current}} / {{total}}",
     "steps": {
       "welcome": {
         "title": "欢迎！",
@@ -8184,6 +8185,10 @@
       "quickActions": {
         "title": "快捷操作",
         "description": "使用这些按钮快速访问主要功能：充值余额、延长订阅和邀请好友。"
+      },
+      "support": {
+        "title": "客服支持",
+        "description": "遇到问题或有疑问？给我们留言，我们会帮您解决。"
       }
     }
   },
@@ -10098,7 +10103,18 @@
       "noChanges": "Choose the number",
       "unit_other": "个设备",
       "actions": "Device actions",
-      "removeQuestion": "Remove “{{name}}”?"
+      "removeQuestion": "Remove “{{name}}”?",
+      "outdatedBadge": "Outdated {{app}} version, VPN may not work",
+      "update": "Update",
+      "outdatedTitleSingle": "Update {{app}} on {{device}}",
+      "outdatedTitle_one": "Update {{app}} on {{count}} device",
+      "outdatedTitle_other": "Update {{app}} on {{count}} devices",
+      "outdatedTextSingle": "VPN may stop working on version {{current}}.\nInstall {{version}} or newer, then refresh the subscription in the app.",
+      "outdatedText": "VPN may stop working on older versions.\nInstall {{version}} or newer, then refresh the subscription in the app.",
+      "outdatedShortSingle": "Install {{version}} or newer — VPN may not work on {{current}}.",
+      "outdatedShort": "Install {{version}} or newer — VPN may not work on older versions.",
+      "regionShort": "Change App Store region",
+      "supportShort": "Support"
     },
     "purchase": {
       "step1": "Subscription period",

@@ -8573,18 +8573,19 @@
   "onboarding": {
     "skip": "Skip",
     "finish": "Finish",
+    "progress": "{{current}} of {{total}}",
     "steps": {
       "welcome": {
         "title": "Welcome!",
         "description": "This is your personal cabinet. Here you can manage your subscription, top up balance and connect devices."
       },
       "connectDevices": {
-        "title": "Connect Devices",
-        "description": "Click this button to get instructions on how to connect VPN on your devices."
+        "title": "Connect VPN",
+        "description": "A step-by-step guide for your device: get the app and add your subscription."
       },
       "balance": {
-        "title": "Your Balance",
-        "description": "Your current balance is displayed here. Click to top it up."
+        "title": "Balance",
+        "description": "Your subscription and extra devices are paid from the balance. Top it up here."
       },
       "subscription": {
         "title": "Subscription Status",
@@ -8593,6 +8594,10 @@
       "quickActions": {
         "title": "Quick Actions",
         "description": "Use these buttons for quick access to main features: top up balance, extend subscription, and invite friends."
+      },
+      "support": {
+        "title": "Support",
+        "description": "Something not working or have a question? Message us and we'll help."
       }
     }
   },
@@ -10227,7 +10232,18 @@
       "unit_one": "device",
       "unit_other": "devices",
       "actions": "Device actions",
-      "removeQuestion": "Remove “{{name}}”?"
+      "removeQuestion": "Remove “{{name}}”?",
+      "outdatedBadge": "Outdated {{app}} version, VPN may not work",
+      "update": "Update",
+      "outdatedTitleSingle": "Update {{app}} on {{device}}",
+      "outdatedTitle_one": "Update {{app}} on {{count}} device",
+      "outdatedTitle_other": "Update {{app}} on {{count}} devices",
+      "outdatedTextSingle": "VPN may stop working on version {{current}}.\nInstall {{version}} or newer, then refresh the subscription in the app.",
+      "outdatedText": "VPN may stop working on older versions.\nInstall {{version}} or newer, then refresh the subscription in the app.",
+      "outdatedShortSingle": "Install {{version}} or newer — VPN may not work on {{current}}.",
+      "outdatedShort": "Install {{version}} or newer — VPN may not work on older versions.",
+      "regionShort": "Change App Store region",
+      "supportShort": "Support"
     },
     "purchase": {
       "step1": "Subscription period",

@@ -215,6 +215,7 @@ export function MobileTabBar({ hidden }: { hidden?: boolean }) {
             <Link
               key={tab.to}
               to={tab.to}
+              data-onboarding={tab.to === '/support' ? 'support' : undefined}
               aria-current={active ? 'page' : undefined}
               onClick={() => haptic.impact('light')}
               className={cn(
