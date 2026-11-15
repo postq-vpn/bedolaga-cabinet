@@ -89,16 +89,15 @@ describe('themeColorsHint: инлайн-скрипт index.html', () => {
     expect(inlineHintScript()).toContain(`'${STORAGE_KEYS.THEME_COLORS_HINT}'`);
   });
 
-  it('ставит переменные палитры на :root и фон страницы до загрузки приложения', () => {
+  it('ставит переменные палитры на :root до загрузки приложения, фон страницы не трогает', () => {
     writeThemeColorsHint({ colors: DEFAULT_THEME_COLORS, vars: VARS });
     runInlineScript();
     expect(rootVar('--color-accent-500')).toBe('20, 184, 166');
     expect(rootVar('--color-dark-950')).toBe('10, 20, 16');
     expect(rootVar('--color-dark-bg')).toBe('#0a1410');
-    const style = document.head.querySelector('style');
-    expect(style?.textContent).toContain('body');
-    expect(style?.textContent).toContain('rgb(10, 20, 16)');
-    expect(style?.textContent).toContain('rgb(247, 231, 206)');
+    // Фон страницы в postq фиксированный (--rd-page): операторский
+    // --color-dark-950 на body давал вспышку чужого цвета при обновлении.
+    expect(document.head.querySelector('style')).toBeNull();
   });
 
   it('без подсказки ничего не трогает', () => {

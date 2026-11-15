@@ -89,8 +89,9 @@ describe('тема до первой отрисовки', () => {
     root.className = 'light';
     document.head.append(inline);
     try {
-      // До CSS приложения заглушка обязана рисовать светлый фон, не тёмный.
-      expect(bodyBg()).toBe('rgb(247, 231, 206)');
+      // До CSS приложения заглушка обязана рисовать светлый фон postq
+      // (--rd-page), не тёмный.
+      expect(bodyBg()).toBe('rgb(248, 248, 248)');
 
       document.head.append(app);
       expect(bodyBg()).toBe('rgb(1, 2, 3)');
