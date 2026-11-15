@@ -97,7 +97,8 @@ export const db = {
       os_version: '15.1',
       app_name: 'happ',
       app_version: '6.4.0',
-      min_app_version: '5.8.1',
+      // Desktop Happ has its own version line — not checked by default.
+      min_app_version: null,
       app_outdated: false,
       update_url: null,
     },

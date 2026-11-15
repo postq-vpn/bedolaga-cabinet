@@ -10248,9 +10248,10 @@
       "outdatedTitle_one": "Update {{app}} on {{count}} device",
       "outdatedTitle_other": "Update {{app}} on {{count}} devices",
       "outdatedTextSingle": "VPN may stop working on version {{current}}.\nInstall {{version}} or newer, then refresh the subscription in the app.",
-      "outdatedText": "VPN may stop working on older versions.\nInstall {{version}} or newer, then refresh the subscription in the app.",
+      "outdatedText": "VPN may stop working on older versions.\nUpdate the app on each device, then refresh the subscription in the app.",
       "outdatedShortSingle": "Install {{version}} or newer — VPN may not work on {{current}}.",
-      "outdatedShort": "Install {{version}} or newer — VPN may not work on older versions.",
+      "outdatedShort": "VPN may not work on older versions. Update the app on each device.",
+      "needVersion": "{{version}} or newer needed",
       "regionShort": "Change App Store region",
       "supportShort": "Support"
     },

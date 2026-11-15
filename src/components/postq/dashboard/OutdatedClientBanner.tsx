@@ -77,12 +77,12 @@ export function OutdatedClientBanner({ devices }: { devices: Device[] }) {
           <p className="rd-p-md text-pretty text-[var(--rd-caption)] sm:hidden">
             {single
               ? t('postq.devices.outdatedShortSingle', { current: single.app_version, version })
-              : t('postq.devices.outdatedShort', { version })}
+              : t('postq.devices.outdatedShort')}
           </p>
           <p className="rd-p-md hidden whitespace-pre-line text-pretty text-[var(--rd-caption)] sm:block">
             {single
               ? t('postq.devices.outdatedTextSingle', { current: single.app_version, version })
-              : t('postq.devices.outdatedText', { version })}
+              : t('postq.devices.outdatedText')}
           </p>
           {single && help('hidden pt-1 sm:flex')}
         </div>
@@ -112,6 +112,8 @@ export function OutdatedClientBanner({ devices }: { devices: Device[] }) {
                 </span>
                 <span className="rd-p-sm text-[var(--rd-caption)]">
                   {clientAppLabel(d.app_name)} {d.app_version}
+                  {d.min_app_version &&
+                    ` · ${t('postq.devices.needVersion', { version: d.min_app_version })}`}
                 </span>
               </span>
               {d.update_url && (
