@@ -14,6 +14,8 @@ import { ProgressTrack } from '../ui';
 import { TopUpDialog } from '../payment/TopUpDialog';
 
 const CONFIRM_WINDOW = 5;
+/** Longer lists scroll inside the dialog. */
+const SCROLL_AFTER = 3;
 
 const MENU_ITEM =
   'rd-p-md flex cursor-pointer select-none rounded-[var(--rd-radius-sm)] px-4 py-3 text-[var(--rd-heading)] outline-none transition-colors data-[highlighted]:bg-[var(--rd-field)]';
@@ -175,14 +177,16 @@ export function DevicesDialog({
         onOpenChange={onOpenChange}
         title={t('postq.devices.title')}
         description={t('postq.devices.connected', { used: devices.length, limit: currentLimit })}
+        sheet
+        pinned={
+          currentLimit > 0 ? (
+            <ProgressTrack
+              percent={(devices.length / currentLimit) * 100}
+              label={t('postq.devices.title')}
+            />
+          ) : undefined
+        }
       >
-        {currentLimit > 0 && (
-          <ProgressTrack
-            percent={(devices.length / currentLimit) * 100}
-            label={t('postq.devices.title')}
-          />
-        )}
-
         {/* Connected devices: one compact tile each — icon, name, a short
               detail line; rename / remove sit in the «…» menu (same as the
               subscription card), confirmations happen right in the tile. */}
@@ -194,145 +198,159 @@ export function DevicesDialog({
               {t('postq.devices.empty')}
             </p>
           ) : (
-            devices.map((d) => (
-              <div
-                key={d.hwid}
-                className="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-3 rounded-[var(--rd-radius-sm)] bg-[var(--rd-field)] px-4 py-3"
-              >
-                <RdIcon
-                  name={platformIcon(d.platform)}
-                  size={24}
-                  className="shrink-0 text-[var(--rd-heading)]"
-                />
-                {editing?.hwid === d.hwid ? (
-                  <form
-                    className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      renameDevice.mutate({ hwid: d.hwid, name: editing.name.trim() || null });
-                    }}
-                  >
-                    <input
-                      value={editing.name}
-                      onChange={(e) => setEditing({ hwid: d.hwid, name: e.target.value })}
-                      onKeyDown={(e) => e.key === 'Escape' && setEditing(null)}
-                      placeholder={d.device_model || t('postq.devices.renamePlaceholder')}
-                      aria-label={t('postq.devices.renamePlaceholder')}
-                      maxLength={64}
-                      autoFocus
-                      className="rd-p-md h-10 min-w-[160px] flex-1 rounded-[var(--rd-radius-sm)] border-2 border-[var(--rd-action)] bg-[var(--rd-surface)] px-3 text-[var(--rd-heading)] outline-none"
-                    />
-                    <span className="rd-p-md flex shrink-0 items-center gap-4">
-                      <button
-                        type="submit"
-                        disabled={renameDevice.isPending}
-                        className="rd-link-action font-medium disabled:opacity-50"
-                      >
-                        {renameDevice.isPending ? t('common.loading') : t('postq.devices.save')}
-                      </button>
-                      <button type="button" onClick={() => setEditing(null)} className="rd-link">
-                        {t('common.cancel')}
-                      </button>
-                    </span>
-                  </form>
-                ) : (
-                  <>
-                    {confirmHwid === d.hwid ? (
-                      // Confirmation replaces the text, so the name isn't squeezed.
-                      <div className="flex min-w-0 flex-1 flex-col gap-2">
-                        <span className="rd-p-md break-words text-[var(--rd-heading)]">
-                          {t('postq.devices.removeQuestion', {
-                            name: d.local_name || d.device_model || d.platform,
-                          })}
-                        </span>
-                        <span className="rd-p-md flex items-center gap-4">
-                          <button
-                            type="button"
-                            disabled={removeDevice.isPending}
-                            onClick={() => removeDevice.mutate(d.hwid)}
-                            className="font-medium text-[var(--rd-error-text)] disabled:opacity-50"
-                          >
-                            {removeDevice.isPending
-                              ? t('common.loading')
-                              : t('postq.devices.remove')}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmHwid(null)}
-                            className="rd-link"
-                          >
-                            {t('common.cancel')}
-                          </button>
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex min-w-0 flex-1 flex-col gap-1">
-                        <span className="rd-p-md truncate font-medium text-[var(--rd-heading)]">
-                          {d.local_name || d.device_model || d.platform}
-                        </span>
-                        <span className="rd-p-sm truncate text-[var(--rd-caption)]">
-                          {[
-                            d.platform,
-                            d.app_version ? `${clientAppLabel(d.app_name)} ${d.app_version}` : null,
-                            d.created_at
-                              ? new Date(d.created_at).toLocaleDateString(uiLocale(), {
-                                  day: 'numeric',
-                                  month: 'short',
-                                })
-                              : null,
-                          ]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </span>
-                        {d.app_outdated && (
-                          <span className="rd-p-sm flex min-w-0 items-center gap-1.5 text-[var(--rd-error-text)]">
-                            <RdIcon name="cabinet/circle-alert" size={16} className="shrink-0" />
-                            {t('postq.devices.outdatedBadge', {
-                              app: clientAppLabel(d.app_name),
+            // Desktop, more than three devices: the list scrolls on its own
+            // (three and a half tiles show — the cut one says «there is more»)
+            // so the card does not outgrow the screen. Phones get a bottom
+            // sheet whose whole body scrolls under the pinned heading.
+            <div
+              className={cn(
+                'flex flex-col gap-2',
+                devices.length > SCROLL_AFTER &&
+                  'sm:max-h-[264px] sm:overflow-y-auto sm:overscroll-contain sm:rounded-[var(--rd-radius-sm)] [&>*]:shrink-0',
+              )}
+            >
+              {devices.map((d) => (
+                <div
+                  key={d.hwid}
+                  className="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-3 rounded-[var(--rd-radius-sm)] bg-[var(--rd-field)] px-4 py-3"
+                >
+                  <RdIcon
+                    name={platformIcon(d.platform)}
+                    size={24}
+                    className="shrink-0 text-[var(--rd-heading)]"
+                  />
+                  {editing?.hwid === d.hwid ? (
+                    <form
+                      className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        renameDevice.mutate({ hwid: d.hwid, name: editing.name.trim() || null });
+                      }}
+                    >
+                      <input
+                        value={editing.name}
+                        onChange={(e) => setEditing({ hwid: d.hwid, name: e.target.value })}
+                        onKeyDown={(e) => e.key === 'Escape' && setEditing(null)}
+                        placeholder={d.device_model || t('postq.devices.renamePlaceholder')}
+                        aria-label={t('postq.devices.renamePlaceholder')}
+                        maxLength={64}
+                        autoFocus
+                        className="rd-p-md h-10 min-w-[160px] flex-1 rounded-[var(--rd-radius-sm)] border-2 border-[var(--rd-action)] bg-[var(--rd-surface)] px-3 text-[var(--rd-heading)] outline-none"
+                      />
+                      <span className="rd-p-md flex shrink-0 items-center gap-4">
+                        <button
+                          type="submit"
+                          disabled={renameDevice.isPending}
+                          className="rd-link-action font-medium disabled:opacity-50"
+                        >
+                          {renameDevice.isPending ? t('common.loading') : t('postq.devices.save')}
+                        </button>
+                        <button type="button" onClick={() => setEditing(null)} className="rd-link">
+                          {t('common.cancel')}
+                        </button>
+                      </span>
+                    </form>
+                  ) : (
+                    <>
+                      {confirmHwid === d.hwid ? (
+                        // Confirmation replaces the text, so the name isn't squeezed.
+                        <div className="flex min-w-0 flex-1 flex-col gap-2">
+                          <span className="rd-p-md break-words text-[var(--rd-heading)]">
+                            {t('postq.devices.removeQuestion', {
+                              name: d.local_name || d.device_model || d.platform,
                             })}
                           </span>
-                        )}
-                      </div>
-                    )}
-                    {confirmHwid !== d.hwid && (
-                      <DropdownMenu.Root modal={false}>
-                        <DropdownMenu.Trigger
-                          aria-label={t('postq.devices.actions')}
-                          className="rd-icon-btn size-8 shrink-0 bg-[var(--rd-surface)] text-[var(--rd-body)] data-[state=open]:bg-[var(--rd-chip-hover)]"
-                        >
-                          <RdIcon name="cabinet/ellipsis" size={20} />
-                        </DropdownMenu.Trigger>
-                        <DropdownMenu.Portal>
-                          <DropdownMenu.Content
-                            align="end"
-                            sideOffset={8}
-                            className="z-[60] flex w-[200px] flex-col gap-1 rounded-[20px] bg-[var(--rd-surface)] p-2 shadow-[0_12px_48px_rgba(0,0,0,0.12)] data-[state=open]:animate-fade-in"
+                          <span className="rd-p-md flex items-center gap-4">
+                            <button
+                              type="button"
+                              disabled={removeDevice.isPending}
+                              onClick={() => removeDevice.mutate(d.hwid)}
+                              className="font-medium text-[var(--rd-error-text)] disabled:opacity-50"
+                            >
+                              {removeDevice.isPending
+                                ? t('common.loading')
+                                : t('postq.devices.remove')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmHwid(null)}
+                              className="rd-link"
+                            >
+                              {t('common.cancel')}
+                            </button>
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex min-w-0 flex-1 flex-col gap-1">
+                          <span className="rd-p-md truncate font-medium text-[var(--rd-heading)]">
+                            {d.local_name || d.device_model || d.platform}
+                          </span>
+                          <span className="rd-p-sm truncate text-[var(--rd-caption)]">
+                            {[
+                              d.platform,
+                              d.app_version
+                                ? `${clientAppLabel(d.app_name)} ${d.app_version}`
+                                : null,
+                              d.created_at
+                                ? new Date(d.created_at).toLocaleDateString(uiLocale(), {
+                                    day: 'numeric',
+                                    month: 'short',
+                                  })
+                                : null,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </span>
+                          {d.app_outdated && (
+                            <span className="rd-p-sm flex min-w-0 items-center gap-1.5 text-[var(--rd-error-text)]">
+                              <RdIcon name="cabinet/circle-alert" size={16} className="shrink-0" />
+                              {t('postq.devices.outdatedBadge', {
+                                app: clientAppLabel(d.app_name),
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {confirmHwid !== d.hwid && (
+                        <DropdownMenu.Root modal={false}>
+                          <DropdownMenu.Trigger
+                            aria-label={t('postq.devices.actions')}
+                            className="rd-icon-btn size-8 shrink-0 bg-[var(--rd-surface)] text-[var(--rd-body)] data-[state=open]:bg-[var(--rd-chip-hover)]"
                           >
-                            <DropdownMenu.Item
-                              className={MENU_ITEM}
-                              onSelect={() =>
-                                setEditing({
-                                  hwid: d.hwid,
-                                  name: d.local_name || d.device_model || '',
-                                })
-                              }
+                            <RdIcon name="cabinet/ellipsis" size={20} />
+                          </DropdownMenu.Trigger>
+                          <DropdownMenu.Portal>
+                            <DropdownMenu.Content
+                              align="end"
+                              sideOffset={8}
+                              className="z-[60] flex w-[200px] flex-col gap-1 rounded-[20px] bg-[var(--rd-surface)] p-2 shadow-[0_12px_48px_rgba(0,0,0,0.12)] data-[state=open]:animate-fade-in"
                             >
-                              {t('postq.devices.rename')}
-                            </DropdownMenu.Item>
-                            <DropdownMenu.Item
-                              className={cn(MENU_ITEM, 'text-[var(--rd-error-text)]')}
-                              onSelect={() => setConfirmHwid(d.hwid)}
-                            >
-                              {t('postq.devices.remove')}
-                            </DropdownMenu.Item>
-                          </DropdownMenu.Content>
-                        </DropdownMenu.Portal>
-                      </DropdownMenu.Root>
-                    )}
-                  </>
-                )}
-              </div>
-            ))
+                              <DropdownMenu.Item
+                                className={MENU_ITEM}
+                                onSelect={() =>
+                                  setEditing({
+                                    hwid: d.hwid,
+                                    name: d.local_name || d.device_model || '',
+                                  })
+                                }
+                              >
+                                {t('postq.devices.rename')}
+                              </DropdownMenu.Item>
+                              <DropdownMenu.Item
+                                className={cn(MENU_ITEM, 'text-[var(--rd-error-text)]')}
+                                onSelect={() => setConfirmHwid(d.hwid)}
+                              >
+                                {t('postq.devices.remove')}
+                              </DropdownMenu.Item>
+                            </DropdownMenu.Content>
+                          </DropdownMenu.Portal>
+                        </DropdownMenu.Root>
+                      )}
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
           {/* Same tile shape as the devices, red text on the neutral fill;
                 the second tap within the countdown removes everything. */}

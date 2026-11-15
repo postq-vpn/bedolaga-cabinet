@@ -39,7 +39,7 @@ export const db = {
       end_date: inDays(12),
       traffic_limit_gb: 0, // 0 = unlimited
       traffic_used_gb: 37.4,
-      device_limit: 3,
+      device_limit: 10,
       connected_squads: ['sq-nl', 'sq-fi'],
       servers: [
         { uuid: 'sq-nl', name: 'Нидерланды', country_code: 'NL' },
@@ -102,6 +102,30 @@ export const db = {
       app_outdated: false,
       update_url: null,
     },
+    // Seven more current devices: ten in total, so the devices sheet / dialog
+    // shows its long-list behaviour (scrolls instead of outgrowing the screen).
+    ...[
+      ['mock-hwid-laptop', 'Windows', 'LAPTOP-9VNPBP5D_x86_64', '4.3.0', 0, null],
+      ['mock-hwid-pc', 'Windows', 'Volodenka_x86_64', '4.3.0', -10, null],
+      ['mock-hwid-iphone-x', 'iOS', 'iPhone X', '6.4.0', 0, null],
+      ['mock-hwid-ipad', 'iOS', 'iPad Air', '6.4.0', -2, 'Планшет'],
+      ['mock-hwid-galaxy', 'Android', 'Galaxy S24', '6.3.1', -4, null],
+      ['mock-hwid-tv', 'Android', 'Android TV', '6.2.0', -6, 'Телевизор'],
+      ['mock-hwid-imac', 'macOS', 'iMac', '4.3.0', -8, null],
+    ].map(([hwid, platform, device_model, app_version, days, local_name]) => ({
+      hwid,
+      platform,
+      device_model,
+      created_at: inDays(days),
+      local_name,
+      user_agent: `Happ/${app_version}/${platform.toLowerCase()}/2611051057585`,
+      os_version: null,
+      app_name: 'happ',
+      app_version,
+      min_app_version: platform === 'iOS' || platform === 'Android' ? '5.8.1' : null,
+      app_outdated: false,
+      update_url: null,
+    })),
   ],
 
   transactions: [
