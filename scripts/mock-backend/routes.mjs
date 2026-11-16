@@ -618,6 +618,88 @@ export const routes = new Map([
     },
   ],
   [
+    'DELETE /cabinet/subscription/devices',
+    () => {
+      db.devices = [];
+      return { success: true };
+    },
+  ],
+  // Extra device slots: 230 ₽ each. With the default 450 ₽ balance one slot
+  // goes through and two answer 402 the way the bot does (*_kopeks fields).
+  [
+    'GET /cabinet/subscription/devices/price',
+    ({ query }) => {
+      const n = Math.max(1, Number(query.devices) || 1);
+      const per = 23000;
+      return {
+        available: true,
+        devices: n,
+        price_per_device_kopeks: per,
+        price_per_device_label: `${rub(per)} ₽`,
+        total_price_kopeks: per * n,
+        total_price_label: `${rub(per * n)} ₽`,
+        current_device_limit: db.subscriptions[0]?.device_limit ?? 0,
+      };
+    },
+  ],
+  [
+    'GET /cabinet/subscription/devices/reduction-info',
+    () => {
+      const limit = db.subscriptions[0]?.device_limit ?? 0;
+      return {
+        available: limit > 1,
+        current_device_limit: limit,
+        min_device_limit: 1,
+        connected_devices_count: db.devices.length,
+      };
+    },
+  ],
+  [
+    'POST /cabinet/subscription/devices/purchase',
+    ({ body }) => {
+      const s = db.subscriptions[0];
+      const n = Math.max(1, Number(body.devices) || 1);
+      const price = 23000 * n;
+      if (db.user.balance_kopeks < price) {
+        return {
+          __status: 402,
+          body: {
+            detail: {
+              code: 'insufficient_funds',
+              error: 'Insufficient balance',
+              required_kopeks: price,
+              current_kopeks: db.user.balance_kopeks,
+              missing_kopeks: price - db.user.balance_kopeks,
+            },
+          },
+        };
+      }
+      db.user.balance_kopeks -= price;
+      db.user.balance_rubles = rub(db.user.balance_kopeks);
+      s.device_limit += n;
+      return {
+        success: true,
+        message: 'ok',
+        devices_added: n,
+        new_device_limit: s.device_limit,
+        price_kopeks: price,
+        price_label: `${rub(price)} ₽`,
+        balance_kopeks: db.user.balance_kopeks,
+        balance_label: `${rub(db.user.balance_kopeks)} ₽`,
+      };
+    },
+  ],
+  [
+    'POST /cabinet/subscription/devices/reduce',
+    ({ body }) => {
+      const s = db.subscriptions[0];
+      const old = s.device_limit;
+      s.device_limit = Math.max(1, Number(body.new_device_limit) || old);
+      return { success: true, message: 'ok', old_device_limit: old, new_device_limit: s.device_limit };
+    },
+  ],
+  ['POST /cabinet/subscription/devices/save-cart', () => ({ success: true })],
+  [
     'PATCH /cabinet/subscription/autopay',
     ({ body }) => {
       const s = db.subscriptions[0];

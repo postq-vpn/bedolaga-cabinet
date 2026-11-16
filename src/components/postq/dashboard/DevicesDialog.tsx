@@ -103,6 +103,11 @@ export function DevicesDialog({
   const [missing, setMissing] = useState<number | null>(null);
   const [confirmHwid, setConfirmHwid] = useState<string | null>(null);
   const [topUpOpen, setTopUpOpen] = useState(false);
+  // The shortfall belongs to the amount it was computed for: another count
+  // (or reopening the dialog) brings the buy button back.
+  useEffect(() => {
+    setMissing(null);
+  }, [target, open]);
 
   const [editing, setEditing] = useState<{ hwid: string; name: string } | null>(null);
   // «Удалить все» without a dialog on top of the dialog: the first press arms

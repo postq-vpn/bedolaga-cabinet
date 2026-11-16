@@ -27,10 +27,12 @@ export const getInsufficientBalanceError = (
       typeof detail === 'object' &&
       (detail?.code === 'insufficient_balance' || detail?.code === 'insufficient_funds')
     ) {
+      // Device purchase answers with *_kopeks fields (required_kopeks,
+      // current_kopeks, missing_kopeks), the other endpoints without the suffix.
       return {
-        required: detail.required || detail.total_price || 0,
-        balance: detail.balance || 0,
-        missingAmount: detail.missing_amount || detail.missingAmount || 0,
+        required: detail.required || detail.total_price || detail.required_kopeks || 0,
+        balance: detail.balance || detail.current_kopeks || 0,
+        missingAmount: detail.missing_amount || detail.missingAmount || detail.missing_kopeks || 0,
       };
     }
   }
