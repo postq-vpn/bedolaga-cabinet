@@ -12,7 +12,8 @@ import {
   getErrorDetail,
 } from '../utils/oauth';
 import type { ServerCompleteResponse } from '../types';
-import { CheckIcon, ExclamationIcon } from '@/components/icons';
+import { useToast } from '@/components/Toast';
+import { StatusScreen } from '@/components/postq/StatusScreen';
 
 type CallbackMode = 'login' | 'link-browser' | 'link-server';
 
@@ -28,6 +29,9 @@ export default function OAuthCallback() {
   const loginWithOAuth = useAuthStore((state) => state.loginWithOAuth);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const hasRun = useRef(false);
+  const { showToast } = useToast();
+  // Read before the effect clears the saved states: a login or a linking.
+  const [signingIn] = useState(() => !peekLinkOAuthState() && !!loadOAuthState());
 
   // Handle merge redirect via useEffect (not in render)
   useEffect(() => {
@@ -90,14 +94,15 @@ export default function OAuthCallback() {
           if (response.merge_required && response.merge_token) {
             navigate(`/merge/${response.merge_token}`, { replace: true });
           } else {
-            navigate('/profile/accounts', { replace: true });
+            showToast({ type: 'success', message: t('postq.authStatus.linked') });
+            navigate('/profile', { replace: true });
           }
         } catch (err: unknown) {
           setErrorMode('link-browser');
           setError(
             getLocalizedApiErrorMessage(
               err,
-              getErrorDetail(err) || t('profile.accounts.linkError'),
+              getErrorDetail(err) || t('postq.authStatus.linkFailed'),
               t,
             ),
           );
@@ -139,7 +144,7 @@ export default function OAuthCallback() {
         setError(
           getLocalizedApiErrorMessage(
             err,
-            getErrorDetail(err) || t('profile.accounts.linkError'),
+            getErrorDetail(err) || t('postq.authStatus.linkFailed'),
             t,
           ),
         );
@@ -147,99 +152,61 @@ export default function OAuthCallback() {
     };
 
     handle();
-  }, [searchParams, loginWithOAuth, navigate, isAuthenticated, t]);
+  }, [searchParams, loginWithOAuth, navigate, isAuthenticated, showToast, t]);
 
-  // Server-complete result: show success with "Return to Telegram" link
-  // (merge redirect is handled by the useEffect above)
+  const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || '';
+  const telegramLink = botUsername ? `https://t.me/${botUsername}` : '';
+  const openTelegram = telegramLink && (
+    <a href={telegramLink} className="rd-btn w-full no-underline">
+      {t('postq.authStatus.openTelegram')}
+    </a>
+  );
+
+  // Linked from the Mini App in an outside browser: the way on is back to
+  // Telegram (a merge redirect is handled by the effect above).
   if (
-    serverLinkResult &&
-    serverLinkResult.success &&
+    serverLinkResult?.success &&
     !(serverLinkResult.merge_required && serverLinkResult.merge_token)
   ) {
-    const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || '';
-    const telegramLink = botUsername ? `https://t.me/${botUsername}` : '';
-
     return (
-      <div className="min-h-viewport flex items-center justify-center px-4 py-8">
-        <div className="fixed inset-0 bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950" />
-        <div className="relative w-full max-w-md text-center">
-          <div className="card">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-success-500/20">
-              <CheckIcon className="h-8 w-8 text-success-400" />
-            </div>
-            <h2 className="mb-2 text-lg font-semibold text-dark-50">
-              {t('profile.accounts.linkSuccess')}
-            </h2>
-            <p className="mb-6 text-sm text-dark-400">{t('profile.accounts.returnToTelegram')}</p>
-            {telegramLink && (
-              <a
-                href={telegramLink}
-                className="btn-primary inline-block w-full rounded-lg bg-accent-500 px-6 py-3 text-center font-medium text-dark-950 no-underline transition-colors hover:bg-accent-400"
-              >
-                {t('profile.accounts.openTelegram')}
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
+      <StatusScreen
+        state="success"
+        title={t('postq.authStatus.linked')}
+        text={t('postq.authStatus.backToTelegram')}
+      >
+        {openTelegram}
+      </StatusScreen>
     );
   }
 
   if (error) {
-    const isServerMode = errorMode === 'link-server';
-    const isLinkBrowserMode = errorMode === 'link-browser';
-    const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || '';
-    const telegramLink = botUsername ? `https://t.me/${botUsername}` : '';
-
-    const errorAction =
-      isServerMode && telegramLink ? (
-        <a
-          href={telegramLink}
-          className="btn-primary inline-block w-full rounded-lg bg-accent-500 px-6 py-3 text-center font-medium text-dark-950 no-underline transition-colors hover:bg-accent-400"
-        >
-          {t('profile.accounts.openTelegram')}
-        </a>
-      ) : isLinkBrowserMode ? (
-        <button
-          onClick={() => navigate('/profile/accounts', { replace: true })}
-          className="btn-primary w-full"
-        >
-          {t('profile.accounts.backToAccounts', 'Back to accounts')}
-        </button>
-      ) : (
-        <button
-          onClick={() => navigate('/login', { replace: true })}
-          className="btn-primary w-full"
-        >
-          {t('auth.backToLogin', 'Back to login')}
-        </button>
-      );
-
+    const linking = errorMode !== 'login';
     return (
-      <div className="min-h-viewport flex items-center justify-center px-4 py-8">
-        <div className="fixed inset-0 bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950" />
-        <div className="relative w-full max-w-md text-center">
-          <div className="card">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-error-500/20">
-              <ExclamationIcon className="h-8 w-8 text-error-400" />
-            </div>
-            <h2 className="mb-2 text-lg font-semibold text-dark-50">{t('auth.loginFailed')}</h2>
-            <p className="mb-6 text-sm text-dark-400">{error}</p>
-            {errorAction}
-          </div>
-        </div>
-      </div>
+      <StatusScreen
+        state="error"
+        title={t(linking ? 'postq.authStatus.linkFailed' : 'postq.authStatus.loginFailed')}
+        text={error}
+      >
+        {errorMode === 'link-server' && telegramLink ? (
+          openTelegram
+        ) : (
+          <button
+            type="button"
+            onClick={() => navigate(linking ? '/profile' : '/login', { replace: true })}
+            className="rd-btn w-full"
+          >
+            {t(linking ? 'postq.authStatus.toProfile' : 'postq.authStatus.toLogin')}
+          </button>
+        )}
+      </StatusScreen>
     );
   }
 
   return (
-    <div className="min-h-viewport flex items-center justify-center">
-      <div className="fixed inset-0 bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950" />
-      <div className="relative text-center">
-        <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-accent-500 border-t-transparent" />
-        <h2 className="text-lg font-semibold text-dark-50">{t('auth.authenticating')}</h2>
-        <p className="mt-2 text-sm text-dark-400">{t('common.loading')}</p>
-      </div>
-    </div>
+    <StatusScreen
+      state="loading"
+      title={t(signingIn ? 'postq.authStatus.signingIn' : 'postq.authStatus.linking')}
+      text={t('postq.authStatus.wait')}
+    />
   );
 }

@@ -237,8 +237,6 @@ export default function Balance() {
               </div>
             )}
           </section>
-
-          {/* Saved cards (SavedCardsSection) return here once recurrent payments work. */}
         </div>
       </div>
     </div>

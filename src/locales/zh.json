@@ -10057,7 +10057,8 @@
       "nNews": "News",
       "nNewsDesc": "Important news and service updates",
       "nPromo": "Personal offers",
-      "nPromoDesc": "Discounts and special offers for you"
+      "nPromoDesc": "Discounts and special offers for you",
+      "payment": "自动扣款"
     },
     "support": {
       "allTickets": "All requests",
@@ -10076,7 +10077,13 @@
       "team": "PostqVPN support",
       "replyPlaceholder": "Type your message...",
       "attachImage": "Attach an image",
-      "safety": "Don't send passwords or your subscription link: they give access to your VPN."
+      "safety": "Don't send passwords or your subscription link: they give access to your VPN.",
+      "invalidFileType": "无法发送此文件。支持 JPG、PNG、GIF、WebP 图片和 MP4、MOV、WebM 视频",
+      "heicNotSupported": "不支持 HEIC 格式。请截图或在「文件」中选择 JPG 格式",
+      "fileTooLarge": "文件超过 20 MB。请剪短视频或通过 Telegram 机器人发送",
+      "uploadFailed": "上传失败",
+      "retryUpload": "重新上传",
+      "retryHint": "点击文件重试"
     },
     "devices": {
       "title": "Devices",
@@ -10115,7 +10122,9 @@
       "outdatedShort": "VPN may not work on older versions. Update the app on each device.",
       "needVersion": "{{version}} or newer needed",
       "regionShort": "Change App Store region",
-      "supportShort": "Support"
+      "supportShort": "Support",
+      "sbpWillClose": "SBP 自动扣款将关闭:其金额是按当前设备数量计算的。更改后请在主页重新开通 — 按新金额",
+      "sbpClosed": "SBP 自动扣款已关闭 — 请在主页按新金额重新开通"
     },
     "purchase": {
       "step1": "Subscription period",
@@ -10223,6 +10232,69 @@
     "partner": {
       "approvedTitle": "You're a partner",
       "allOptional": "All fields are optional — fill in what you think matters."
+    },
+    "sbp": {
+      "title": "SBP 自动扣款",
+      "offText": "续费从您的银行账户扣款,无需充值余额",
+      "connect": "开通",
+      "pendingText": "请在银行应用中确认绑定",
+      "openBank": "打开银行",
+      "pastDueText": "扣款失败,银行将重试",
+      "amountEvery": "{{amount}} {{interval}}",
+      "nextCharge": "下次 {{date}}",
+      "disable": "关闭",
+      "confirmDisable": "关闭 SBP 自动扣款?订阅将不再自动续费。",
+      "disabled": "SBP 自动扣款已关闭",
+      "payButton": "通过 SBP 支付并自动续费",
+      "payHintNoPrice": "现在首次扣款,之后自动续费。可随时关闭。",
+      "activeText": "已开通",
+      "offerTitle": "通过 SBP 自动续费",
+      "payHintMonth": "现在从银行账户扣款 {{amount}},之后每月扣款。不使用余额,可随时关闭",
+      "payHintYear": "现在从银行账户扣款 {{amount}},之后每年扣款一次。不使用余额,可随时关闭",
+      "payButtonAmount": "通过 SBP 支付 {{amount}}",
+      "availableFor": "适用于期限",
+      "or": "或"
+    },
+    "authStatus": {
+      "wait": "只需几秒钟",
+      "signingIn": "正在登录",
+      "loginFailed": "登录失败",
+      "toLogin": "返回登录",
+      "linking": "正在绑定登录方式",
+      "linkingTelegram": "正在绑定 Telegram",
+      "linked": "登录方式已绑定",
+      "linkFailed": "无法绑定登录方式",
+      "toProfile": "返回个人资料",
+      "backToTelegram": "请返回 Telegram 继续",
+      "openTelegram": "打开 Telegram",
+      "emailChecking": "正在确认邮箱",
+      "emailConfirmed": "邮箱已确认",
+      "emailConfirmedText": "现在可以使用邮箱和密码登录。正在打开个人中心",
+      "emailFailed": "无法确认邮箱",
+      "emailFailedText": "链接已过期或已被使用。请在个人资料中重新发送邮件",
+      "emailBrokenLink": "邮件中的链接未完整打开。请重新打开或在个人资料中重新发送邮件",
+      "invalidEmail": "请检查邮箱地址",
+      "passwordMinLength": "密码至少 8 个字符",
+      "passwordsMismatch": "两次输入的密码不一致",
+      "codeInvalid": "验证码错误或已过期",
+      "emailTakenNeedPassword": "该邮箱已绑定到其他账户。输入该账户的密码即可合并账户",
+      "emailTaken": "该邮箱已绑定到其他账户。如果是您的邮箱,请用它登录或联系客服",
+      "emailAlreadyLinked": "您已有已确认的邮箱",
+      "verificationResent": "邮件已重新发送",
+      "telegramUnavailable": "目前无法在此绑定 Telegram — 请在机器人 @{{bot}} 中完成",
+      "emailRequired": "请输入邮箱",
+      "newEmail": "新邮箱",
+      "sameEmail": "这是您当前的邮箱",
+      "emailUsed": "该邮箱已被其他账户使用",
+      "codeWrong": "验证码错误",
+      "codeExpired": "验证码已过期 — 请重新获取",
+      "tooManyRequests": "尝试次数过多 — 请稍后再试",
+      "emailChanged": "邮箱已更改",
+      "verificationRequired": "请确认邮箱后再用它登录"
+    },
+    "autopay": {
+      "title": "从余额自动续费",
+      "caption_other": "到期前 {{count}} 天从余额扣款"
     }
   }
 }

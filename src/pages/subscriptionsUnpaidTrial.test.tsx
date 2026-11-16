@@ -49,7 +49,11 @@ it.each([false, true])(
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(await screen.findByRole('heading', { name: 'postq.dashboard.trialTitle' })).toBeTruthy();
+    // The card renders the title twice — phone and desktop layouts, one hidden
+    // by CSS (which jsdom doesn't apply), so at least one is enough here.
+    expect(
+      (await screen.findAllByRole('heading', { name: 'postq.dashboard.trialTitle' })).length,
+    ).toBeGreaterThan(0);
     expect(await screen.findByRole('button', { name: 'postq.dashboard.activateFor' })).toBeTruthy();
     expect(screen.queryByText('Тестовая')).toBeNull();
     expect(screen.queryByRole('link', { name: /Подключиться/ })).toBeNull();

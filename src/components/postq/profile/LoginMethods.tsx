@@ -63,7 +63,7 @@ export function LoginMethods({ telegramUsername }: { telegramUsername: string | 
       if (!saveLinkOAuthState(state, provider)) throw new Error('OAuth state is not persistable');
       window.location.href = authorize_url;
     } catch {
-      setError(t('profile.accounts.linkError'));
+      setError(t('postq.authStatus.linkFailed'));
       setLinking(null);
     }
   };

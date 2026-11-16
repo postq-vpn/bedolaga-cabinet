@@ -10185,7 +10185,8 @@
       "nNews": "News",
       "nNewsDesc": "Important news and service updates",
       "nPromo": "Personal offers",
-      "nPromoDesc": "Discounts and special offers for you"
+      "nPromoDesc": "Discounts and special offers for you",
+      "payment": "Auto-debit"
     },
     "support": {
       "allTickets": "All requests",
@@ -10204,7 +10205,13 @@
       "team": "PostqVPN support",
       "replyPlaceholder": "Type your message...",
       "attachImage": "Attach an image",
-      "safety": "Don't send passwords or your subscription link: they give access to your VPN."
+      "safety": "Don't send passwords or your subscription link: they give access to your VPN.",
+      "invalidFileType": "this file can't be sent. Use JPG, PNG, GIF, WebP photos and MP4, MOV, WebM videos",
+      "heicNotSupported": "HEIC isn't supported. Take a screenshot of the photo or pick it from Files as JPG",
+      "fileTooLarge": "the file is over 20 MB. Trim the video or send it through the Telegram bot",
+      "uploadFailed": "couldn't upload",
+      "retryUpload": "Upload again",
+      "retryHint": "Tap the file to try again"
     },
     "devices": {
       "title": "Devices",
@@ -10244,7 +10251,9 @@
       "outdatedShort": "VPN may not work on older versions. Update the app on each device.",
       "needVersion": "{{version}} or newer needed",
       "regionShort": "Change App Store region",
-      "supportShort": "Support"
+      "supportShort": "Support",
+      "sbpWillClose": "SBP auto-debit will be turned off: its amount is set for the current number of devices. After the change, connect it again on the main page — with the new amount",
+      "sbpClosed": "SBP auto-debit is off — connect it again on the main page with the new amount"
     },
     "purchase": {
       "step1": "Subscription period",
@@ -10352,6 +10361,70 @@
     "partner": {
       "approvedTitle": "You're a partner",
       "allOptional": "All fields are optional — fill in what you think matters."
+    },
+    "sbp": {
+      "title": "SBP auto-debit",
+      "offText": "Renewals are charged to your bank account, no top-up needed",
+      "connect": "Connect",
+      "pendingText": "Confirm the binding in your banking app",
+      "openBank": "Open bank",
+      "pastDueText": "The charge failed, the bank will retry",
+      "amountEvery": "{{amount}} {{interval}}",
+      "nextCharge": "next on {{date}}",
+      "disable": "Disable",
+      "confirmDisable": "Disable SBP auto-debit? The subscription will stop renewing by itself.",
+      "disabled": "SBP auto-debit disabled",
+      "payButton": "Pay via SBP with auto-renewal",
+      "payHintNoPrice": "First charge now, then automatically. You can turn it off any time.",
+      "activeText": "On",
+      "offerTitle": "With auto-renewal via SBP",
+      "payHintMonth": "We charge {{amount}} to your bank account now and every month after. The balance isn't used; turn it off any time",
+      "payHintYear": "We charge {{amount}} to your bank account now and once a year after. The balance isn't used; turn it off any time",
+      "payButtonAmount": "Pay {{amount}} via SBP",
+      "availableFor": "Available for",
+      "or": "or"
+    },
+    "authStatus": {
+      "wait": "This takes a couple of seconds",
+      "signingIn": "Signing you in",
+      "loginFailed": "Couldn't sign in",
+      "toLogin": "Back to sign-in",
+      "linking": "Linking the sign-in method",
+      "linkingTelegram": "Linking Telegram",
+      "linked": "Sign-in method linked",
+      "linkFailed": "Couldn't link the sign-in method",
+      "toProfile": "Back to profile",
+      "backToTelegram": "Go back to Telegram to continue",
+      "openTelegram": "Open Telegram",
+      "emailChecking": "Confirming your email",
+      "emailConfirmed": "Email confirmed",
+      "emailConfirmedText": "You can now sign in with email and password. Opening your account",
+      "emailFailed": "Couldn't confirm your email",
+      "emailFailedText": "The link has expired or was already used. Request a new email in your profile",
+      "emailBrokenLink": "The link from the email didn't open completely. Open it again or request a new email in your profile",
+      "invalidEmail": "Check the email address",
+      "passwordMinLength": "Password must be at least 8 characters",
+      "passwordsMismatch": "Passwords don't match",
+      "codeInvalid": "The code is wrong or has expired",
+      "emailTakenNeedPassword": "This email is already linked to another account. Enter its password to merge the accounts",
+      "emailTaken": "This email is already linked to another account. If it's yours, sign in with it or contact support",
+      "emailAlreadyLinked": "You already have a confirmed email",
+      "verificationResent": "We sent the email again",
+      "telegramUnavailable": "Telegram can't be linked here right now — do it in the bot @{{bot}}",
+      "emailRequired": "Enter your email",
+      "newEmail": "New email",
+      "sameEmail": "That's your current email",
+      "emailUsed": "This email is already used by another account",
+      "codeWrong": "Wrong code",
+      "codeExpired": "The code has expired — request a new one",
+      "tooManyRequests": "Too many attempts — try again a bit later",
+      "emailChanged": "Email changed",
+      "verificationRequired": "Confirm your email to sign in with it"
+    },
+    "autopay": {
+      "title": "Auto-renewal from balance",
+      "caption_one": "Charged to your balance {{count}} day before expiry",
+      "caption_other": "Charged to your balance {{count}} days before expiry"
     }
   }
 }

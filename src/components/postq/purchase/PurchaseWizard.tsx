@@ -6,6 +6,8 @@ import { balanceApi } from '@/api/balance';
 import { subscriptionApi } from '@/api/subscription';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useAuthStore } from '@/store/auth';
+import { usePlatform } from '@/platform';
+import { openPaymentUrl } from '@/utils/openPaymentUrl';
 import { getErrorMessage } from '@/utils/subscriptionHelpers';
 import { pickBestValue } from '@/utils/bestValue';
 import { cn } from '@/lib/utils';
@@ -26,6 +28,11 @@ import {
 
 type Step = 1 | 2 | 3;
 
+/** Platega charges per week, month or year only (as the bot checks it). */
+function isSbpPeriod(days: number) {
+  return days === 7 || (days >= 28 && days <= 31) || (days >= 350 && days <= 380);
+}
+
 function newCheckoutId() {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
@@ -44,14 +51,18 @@ function newCheckoutId() {
 export function PurchaseWizard({
   tariff,
   subscriptionId,
+  sbpEnabled = false,
 }: {
   tariff: Tariff;
   subscriptionId?: number;
+  /** Platega recurrent is on: step 3 also offers paying by SBP with auto-renewal. */
+  sbpEnabled?: boolean;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.user?.id);
+  const { platform, openLink } = usePlatform();
   const { formatAmount, currencySymbol } = useCurrency();
   const money = (kopeks: number) => `${formatAmount(kopeks / 100)} ${currencySymbol}`;
   // Compact rows on phones: whole rubles without «,00».
@@ -196,6 +207,106 @@ export function PurchaseWizard({
     },
     onError: () => {
       quoteQuery.refetch();
+    },
+  });
+
+  // SBP with auto-renewal: the first charge confirms the binding in the bank,
+  // then the same sum goes every period. The bot picks that period itself
+  // (the tariff's shortest one), so the price comes from its own preview, not
+  // from the period chosen on step 1. Same rules as TariffPurchaseForm: not for
+  // a trial conversion, and the device choice travels only when it's a choice.
+  const sbpOffered = sbpEnabled && quote?.purchase_kind !== 'trial_conversion';
+  // Platega charges only per month or year: SBP pays exactly the chosen period
+  // when it is one of those; for 3 or 6 months it isn't offered (it used to
+  // turn silently into «monthly at the monthly price»).
+  const sbpPeriodOk = isSbpPeriod(days);
+  const sbpPeriods = tariff.periods.filter((p) => isSbpPeriod(p.days));
+  const sbpWithSelection =
+    Boolean(tariff.purchase_device_selection_supported) &&
+    Boolean(selection?.selectable || quote?.recurrent_checkout_pending);
+  const sbpQuoteQuery = useQuery({
+    queryKey: [
+      'tariff-recurrent-quote',
+      userId,
+      'platega',
+      tariff.id,
+      subscriptionId,
+      deviceCount,
+      days,
+    ],
+    queryFn: () =>
+      subscriptionApi.previewRecurrentPurchase(
+        'platega',
+        tariff.id,
+        subscriptionId,
+        deviceCount,
+        days,
+      ),
+    enabled: step === 3 && sbpOffered && sbpPeriodOk && sbpWithSelection && quoteReady,
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+  });
+  const sbpQuote = sbpQuoteQuery.data;
+  const sbpReady = !sbpWithSelection || (!!sbpQuote && !sbpQuoteQuery.isFetching);
+  // The SBP checkout keeps its own idempotency key, apart from the balance
+  // purchase: sharing one would hand a balance retry a fresh key after an SBP
+  // attempt — and a balance purchase that timed out could then go through
+  // twice. Same rules as TariffPurchaseForm: an uncertain failure (no answer,
+  // 5xx) retries with exactly the same selection, so the bot recognises the
+  // replay; a definite refusal (4xx) drops it and asks for a fresh price.
+  const sbpAttempt = useRef<{
+    signature: string;
+    selection: { selected_device_limit: number; quote_id: string; checkout_id: string };
+  } | null>(null);
+  const sbpSignature = JSON.stringify([tariff.id, subscriptionId, deviceCount, days]);
+  const sbpPurchase = useMutation({
+    mutationFn: async () => {
+      if (!sbpWithSelection)
+        return subscriptionApi.purchaseWithSbpRecurring(tariff.id, subscriptionId, undefined, days);
+      if (sbpAttempt.current?.signature === sbpSignature) {
+        return subscriptionApi.purchaseWithSbpRecurring(
+          tariff.id,
+          subscriptionId,
+          sbpAttempt.current.selection,
+          days,
+        );
+      }
+      if (!sbpQuote) throw new Error(t('subscription.purchaseDevices.waitForPrice'));
+      if (Date.parse(sbpQuote.expires_at) <= Date.now()) {
+        await sbpQuoteQuery.refetch();
+        throw new Error(t('subscription.purchaseDevices.reviewPrice'));
+      }
+      sbpAttempt.current = {
+        signature: sbpSignature,
+        selection: {
+          selected_device_limit: sbpQuote.selected_device_limit,
+          quote_id: sbpQuote.quote_id,
+          checkout_id: sbpQuote.checkout_id ?? newCheckoutId(),
+        },
+      };
+      return subscriptionApi.purchaseWithSbpRecurring(
+        tariff.id,
+        subscriptionId,
+        sbpAttempt.current.selection,
+        days,
+      );
+    },
+    onSuccess: (data) => {
+      sbpAttempt.current = null;
+      for (const key of ['subscription', 'purchase-options', 'subscriptions-list']) {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['sbp-recurring', data.subscription_id] });
+      navigate('/', { replace: true });
+      if (data.redirect_url) openPaymentUrl(data.redirect_url, platform, openLink);
+    },
+    onError: (error) => {
+      const status = (error as { response?: { status?: number } }).response?.status;
+      if (status !== undefined && status < 500) {
+        sbpAttempt.current = null;
+        sbpQuoteQuery.refetch();
+      }
     },
   });
 
@@ -503,6 +614,84 @@ export function PurchaseWizard({
                   </div>
                 )}
               </dl>
+              {sbpOffered && sbpPeriods.length > 0 && (
+                <>
+                  <div className="h-px w-full bg-[var(--rd-border)]" />
+                  {/* A separate offer: its own sum and cadence, the balance
+                      above is not part of it. */}
+                  <div className="flex flex-col gap-3">
+                    <div className="rd-p-md flex flex-col gap-1">
+                      <span className="font-medium text-[var(--rd-heading)]">
+                        {t('postq.sbp.offerTitle')}
+                      </span>
+                      <span className="text-[var(--rd-caption)]" aria-live="polite">
+                        {!sbpPeriodOk ? (
+                          // The supported periods are the links: one tap moves
+                          // the purchase there and the SBP button appears.
+                          <>
+                            {t('postq.sbp.availableFor')}{' '}
+                            {sbpPeriods.map((p, i) => (
+                              <span key={p.days}>
+                                {i > 0 && ` ${t('postq.sbp.or')} `}
+                                <button
+                                  type="button"
+                                  className="rd-link-action whitespace-nowrap"
+                                  onClick={() => setPeriod(p)}
+                                >
+                                  {p.label}
+                                </button>
+                              </span>
+                            ))}
+                          </>
+                        ) : sbpQuoteQuery.isError ? (
+                          <button
+                            type="button"
+                            className="rd-link"
+                            onClick={() => sbpQuoteQuery.refetch()}
+                          >
+                            {t('subscription.purchaseDevices.priceUnavailable')} ·{' '}
+                            {t('common.retry')}
+                          </button>
+                        ) : sbpQuote ? (
+                          t(
+                            sbpQuote.charge_days >= 350
+                              ? 'postq.sbp.payHintYear'
+                              : 'postq.sbp.payHintMonth',
+                            { amount: money(sbpQuote.amount_kopeks) },
+                          )
+                        ) : sbpWithSelection ? (
+                          t('subscription.purchaseDevices.waitForPrice')
+                        ) : (
+                          t('postq.sbp.payHintNoPrice')
+                        )}
+                      </span>
+                    </div>
+                    {sbpPeriodOk ? (
+                      <button
+                        type="button"
+                        className="rd-btn-tile w-full"
+                        disabled={
+                          !priceKnown || !sbpReady || sbpPurchase.isPending || purchase.isPending
+                        }
+                        onClick={() => sbpPurchase.mutate()}
+                      >
+                        {sbpPurchase.isPending
+                          ? t('common.loading')
+                          : sbpQuote
+                            ? t('postq.sbp.payButtonAmount', {
+                                amount: money(sbpQuote.amount_kopeks),
+                              })
+                            : t('postq.sbp.payButton')}
+                      </button>
+                    ) : null}
+                    {sbpPurchase.isError && (
+                      <p role="alert" className="rd-p-sm text-[var(--rd-error-text)]">
+                        {getErrorMessage(sbpPurchase.error, t)}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
             </>
           )}
         </section>

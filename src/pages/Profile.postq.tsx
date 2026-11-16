@@ -17,6 +17,7 @@ import { UserAvatar } from '@/components/postq/UserAvatar';
 import { useSecretAdminTap } from '@/hooks/useSecretAdminTap';
 import { LoginMethods } from '@/components/postq/profile/LoginMethods';
 import { EmailLinkForm } from '@/components/postq/profile/EmailLinkForm';
+import { AutoDebitSection } from '@/components/postq/profile/AutoDebitSection';
 import { NotificationsCard } from '@/components/postq/profile/NotificationsCard';
 import { InfoCard } from '@/components/postq/profile/InfoCard';
 import { MobileMoreCard } from '@/components/postq/MobileNav';
@@ -54,7 +55,7 @@ export default function Profile() {
   const resendVerificationMutation = useMutation({
     mutationFn: authApi.resendVerification,
     onSuccess: () => {
-      setSuccess(t('profile.verificationResent'));
+      setSuccess(t('postq.authStatus.verificationResent'));
       setError(null);
       startVerificationResendCooldown(UI.RESEND_COOLDOWN_SEC);
     },
@@ -82,11 +83,11 @@ export default function Profile() {
     onError: (err: unknown) => {
       const detail = getApiErrorMessage(err, '');
       if (detail.includes('already registered') || detail.includes('already in use')) {
-        setChangeError(t('profile.changeEmail.emailAlreadyUsed'));
+        setChangeError(t('postq.authStatus.emailUsed'));
       } else if (detail.includes('same as current')) {
-        setChangeError(t('profile.changeEmail.sameEmail'));
+        setChangeError(t('postq.authStatus.sameEmail'));
       } else if (detail.includes('rate limit') || detail.includes('too many')) {
-        setChangeError(t('profile.changeEmail.tooManyRequests'));
+        setChangeError(t('postq.authStatus.tooManyRequests'));
       } else {
         setChangeError(getLocalizedApiErrorMessage(err, t('common.error'), t));
       }
@@ -106,9 +107,9 @@ export default function Profile() {
     onError: (err: unknown) => {
       const detail = getApiErrorMessage(err, '');
       if (detail.includes('invalid') || detail.includes('wrong')) {
-        setChangeError(t('profile.changeEmail.invalidCode'));
+        setChangeError(t('postq.authStatus.codeWrong'));
       } else if (detail.includes('expired')) {
-        setChangeError(t('profile.changeEmail.codeExpired'));
+        setChangeError(t('postq.authStatus.codeExpired'));
       } else {
         setChangeError(getLocalizedApiErrorMessage(err, t('common.error'), t));
       }
@@ -147,15 +148,15 @@ export default function Profile() {
   const handleSendChangeCode = () => {
     setChangeError(null);
     if (!newEmail.trim()) {
-      setChangeError(t('profile.emailRequired'));
+      setChangeError(t('postq.authStatus.emailRequired'));
       return;
     }
     if (!isValidEmail(newEmail.trim())) {
-      setChangeError(t('profile.invalidEmail'));
+      setChangeError(t('postq.authStatus.invalidEmail'));
       return;
     }
     if (user?.email && newEmail.toLowerCase().trim() === user.email.toLowerCase()) {
-      setChangeError(t('profile.changeEmail.sameEmail'));
+      setChangeError(t('postq.authStatus.sameEmail'));
       return;
     }
     requestEmailChangeMutation.mutate(newEmail.trim());
@@ -168,7 +169,7 @@ export default function Profile() {
       return;
     }
     if (changeCode.trim().length < 4) {
-      setChangeError(t('profile.changeEmail.invalidCode'));
+      setChangeError(t('postq.authStatus.codeWrong'));
       return;
     }
     verifyEmailChangeMutation.mutate(changeCode.trim());
@@ -263,7 +264,7 @@ export default function Profile() {
             <button
               type="button"
               onClick={logout}
-              className="rd-p-md rd-link order-6 flex items-center gap-3 self-start px-6 py-2 lg:order-none"
+              className="rd-p-md rd-link order-7 flex items-center gap-3 self-start px-6 py-2 lg:order-none"
             >
               <RdIcon name="cabinet/log-out" size={20} />
               {t('postq.profile.logout')}
@@ -323,7 +324,7 @@ export default function Profile() {
                       changeEmailStep === null && (
                         <div className="flex flex-col gap-3">
                           <p className="rd-p-md text-[var(--rd-caption)]">
-                            {t('profile.verificationRequired')}
+                            {t('postq.authStatus.verificationRequired')}
                           </p>
                           <button
                             type="button"
@@ -353,8 +354,8 @@ export default function Profile() {
                               handleSendChangeCode();
                             }
                           }}
-                          placeholder={t('profile.changeEmail.newEmail')}
-                          aria-label={t('profile.changeEmail.newEmail')}
+                          placeholder={t('postq.authStatus.newEmail')}
+                          aria-label={t('postq.authStatus.newEmail')}
                           className={FIELD}
                           autoComplete="email"
                         />
@@ -451,7 +452,7 @@ export default function Profile() {
 
                     {changeEmailStep === 'success' && (
                       <p className="rd-p-md text-[var(--rd-success-text)]">
-                        {t('profile.changeEmail.success')}
+                        {t('postq.authStatus.emailChanged')}
                       </p>
                     )}
                   </>
@@ -474,13 +475,16 @@ export default function Profile() {
             <LoginMethods telegramUsername={user?.username ?? null} />
           </section>
 
-          <div className="order-3 lg:order-none">
+          <div className="order-3 empty:hidden lg:order-none">
+            <AutoDebitSection />
+          </div>
+          <div className="order-4 lg:order-none">
             <NotificationsCard />
           </div>
-          <div className="order-4 empty:hidden lg:order-none">
+          <div className="order-5 empty:hidden lg:order-none">
             <InfoCard />
           </div>
-          <div className="order-5 lg:hidden">
+          <div className="order-6 lg:hidden">
             <MobileMoreCard />
           </div>
         </div>

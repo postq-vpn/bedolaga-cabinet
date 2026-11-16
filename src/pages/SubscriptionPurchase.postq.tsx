@@ -155,7 +155,17 @@ export default function SubscriptionPurchase() {
     !!subscription.tariff_id &&
     subscription.tariff_id !== purchasable[0]?.id;
   if (isTariffsMode && purchasable.length === 1 && !switchesTariff) {
-    return <PurchaseWizard tariff={purchasable[0]} subscriptionId={subscriptionId} />;
+    return (
+      <PurchaseWizard
+        tariff={purchasable[0]}
+        subscriptionId={subscriptionId}
+        sbpEnabled={
+          !!purchaseOptions &&
+          'platega_recurrent_enabled' in purchaseOptions &&
+          purchaseOptions.platega_recurrent_enabled === true
+        }
+      />
+    );
   }
 
   const isScopedSwitch =

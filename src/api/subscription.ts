@@ -285,6 +285,8 @@ export const subscriptionApi = {
     price_label: string;
     balance_kopeks: number;
     balance_label: string;
+    /** The SBP binding was priced for the old count and has been closed. */
+    sbp_recurring_cancelled?: boolean;
   }> => {
     const response = await apiClient.post(
       '/cabinet/subscription/devices/purchase',
@@ -357,6 +359,8 @@ export const subscriptionApi = {
     message: string;
     old_device_limit: number;
     new_device_limit: number;
+    /** The SBP binding was priced for the old count and has been closed. */
+    sbp_recurring_cancelled?: boolean;
   }> => {
     const response = await apiClient.post(
       '/cabinet/subscription/devices/reduce',
@@ -486,6 +490,8 @@ export const subscriptionApi = {
     tariffId: number,
     subscriptionId?: number,
     selectedDeviceLimit?: number,
+    /** The period the buyer picked (Platega: 1 month or 1 year). */
+    periodDays?: number,
   ): Promise<{
     amount_kopeks: number;
     charge_days: number;
@@ -500,6 +506,7 @@ export const subscriptionApi = {
       withSubId(subscriptionId, {
         tariff_id: tariffId,
         selected_device_limit: selectedDeviceLimit,
+        ...(periodDays !== undefined && { period_days: periodDays }),
       }),
     );
     return response.data;
@@ -509,11 +516,17 @@ export const subscriptionApi = {
     tariffId: number,
     subscriptionId?: number,
     selection?: { selected_device_limit: number; quote_id: string; checkout_id: string },
+    /** The period the buyer picked (Platega: 1 month or 1 year). */
+    periodDays?: number,
   ): Promise<{ status: string; redirect_url: string | null; subscription_id: number }> => {
     const response = await apiClient.post(
       '/cabinet/subscription/platega-recurrent/purchase',
       {},
-      withSubId(subscriptionId, { tariff_id: tariffId, ...selection }),
+      withSubId(subscriptionId, {
+        tariff_id: tariffId,
+        ...selection,
+        ...(periodDays !== undefined && { period_days: periodDays }),
+      }),
     );
     return response.data;
   },

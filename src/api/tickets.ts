@@ -75,7 +75,10 @@ export const ticketsApi = {
     formData.append('file', file);
     formData.append('media_type', mediaType);
 
-    const response = await apiClient.post<MediaUploadResponse>('/cabinet/media/upload', formData);
+    // A video from a phone on mobile data takes minutes, not the API's 30 s.
+    const response = await apiClient.post<MediaUploadResponse>('/cabinet/media/upload', formData, {
+      timeout: 5 * 60 * 1000,
+    });
     return response.data;
   },
 

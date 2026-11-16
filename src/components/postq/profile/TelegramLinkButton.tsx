@@ -54,7 +54,11 @@ export function TelegramLinkButton({ onError }: { onError: (message: string | nu
       await queryClient.invalidateQueries({ queryKey: ['user'] });
     } catch (err) {
       onError(
-        getLocalizedApiErrorMessage(err, getErrorDetail(err) || t('profile.accounts.linkError'), t),
+        getLocalizedApiErrorMessage(
+          err,
+          getErrorDetail(err) || t('postq.authStatus.linkFailed'),
+          t,
+        ),
       );
     } finally {
       setBusy(false);
@@ -78,7 +82,7 @@ export function TelegramLinkButton({ onError }: { onError: (message: string | nu
           if (data.id_token) void linkRef.current({ id_token: data.id_token });
           else {
             setBusy(false);
-            if (data.error) onError(t('profile.accounts.linkError'));
+            if (data.error) onError(t('postq.authStatus.linkFailed'));
           }
         },
       );
@@ -161,8 +165,8 @@ export function TelegramLinkButton({ onError }: { onError: (message: string | nu
     if (unavailable) {
       onError(
         botUsername
-          ? `${t('profile.accounts.telegramLinkUnavailable')} @${botUsername}`
-          : t('profile.accounts.linkError'),
+          ? t('postq.authStatus.telegramUnavailable', { bot: botUsername })
+          : t('postq.authStatus.linkFailed'),
       );
       return;
     }

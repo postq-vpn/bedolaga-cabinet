@@ -28,28 +28,28 @@ import { useBackHandler } from '@/components/postq/backOverride';
 import { useVirtualKeyboard } from '@/hooks/useVirtualKeyboard';
 import { useVisualViewportHeight } from '@/hooks/useVisualViewportHeight';
 import { Skeleton, SkeletonGroup } from '@/components/ui/skeleton';
+import {
+  TICKET_MEDIA_ACCEPT,
+  TICKET_MEDIA_MAX_BYTES,
+  isHeic,
+  preparePhoto,
+  ticketMediaKind,
+} from '@/utils/ticketMedia';
 
 const log = logger.createLogger('Support');
-
-const MEDIA_TYPES: Record<string, 'photo' | 'video'> = {
-  'image/jpeg': 'photo',
-  'image/png': 'photo',
-  'image/gif': 'photo',
-  'image/webp': 'photo',
-  'video/mp4': 'video',
-  'video/webm': 'video',
-  'video/quicktime': 'video',
-};
 
 // Media attachment state
 interface MediaAttachment {
   id: string;
   file: File;
   preview: string;
-  mediaType: 'photo' | 'video';
+  /** The server may store a photo or video as a file (Telegram refused it). */
+  mediaType: 'photo' | 'video' | 'document';
   uploading: boolean;
   fileId?: string;
   error?: string;
+  /** Can't go at all (format, size): no retry. */
+  refused?: boolean;
 }
 
 const DESKTOP_QUERY = '(min-width: 1024px)';
@@ -259,36 +259,71 @@ export default function Support() {
     if (list && atBottom) list.scrollTop = list.scrollHeight;
   }, [replyMessage, selectedTicket?.id]);
 
-  // Handle file selection (multi-upload)
-  const handleFileSelect = async (
+  // Upload one attachment (also the retry of a failed one).
+  const uploadAttachment = async (
+    entry: MediaAttachment,
+    setAttachments: React.Dispatch<React.SetStateAction<MediaAttachment[]>>,
+  ) => {
+    const patch = (p: Partial<MediaAttachment>) =>
+      setAttachments((prev) => prev.map((a) => (a.id === entry.id ? { ...a, ...p } : a)));
+    patch({ uploading: true, error: undefined });
+    try {
+      const file = entry.mediaType === 'photo' ? await preparePhoto(entry.file) : entry.file;
+      if (file.size > TICKET_MEDIA_MAX_BYTES) {
+        patch({ uploading: false, error: t('postq.support.fileTooLarge'), refused: true });
+        return;
+      }
+      const result = await ticketsApi.uploadMedia(
+        file,
+        entry.mediaType === 'document' ? 'photo' : entry.mediaType,
+      );
+      const stored = result.media_type;
+      patch({
+        uploading: false,
+        fileId: result.file_id,
+        mediaType:
+          stored === 'photo' || stored === 'video' || stored === 'document'
+            ? stored
+            : entry.mediaType,
+      });
+    } catch (error) {
+      log.error('Ticket media upload failed', error);
+      patch({
+        uploading: false,
+        error: getLocalizedApiErrorMessage(error, t('postq.support.uploadFailed'), t),
+      });
+    }
+  };
+
+  // Handle file selection (multi-upload). A file that can't go is shown with
+  // the reason instead of silently vanishing.
+  const handleFileSelect = (
     file: File,
     setAttachments: React.Dispatch<React.SetStateAction<MediaAttachment[]>>,
   ) => {
-    const mediaType = MEDIA_TYPES[file.type];
-    if (!mediaType) return;
-    if (file.size > 10 * 1024 * 1024) return;
-
-    const preview = mediaType === 'photo' ? URL.createObjectURL(file) : '';
+    const kind = ticketMediaKind(file);
+    const preview = kind === 'photo' ? URL.createObjectURL(file) : '';
     if (preview) blobUrlsRef.current.add(preview);
     const id =
       typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
         ? crypto.randomUUID()
         : `att_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const entry: MediaAttachment = { id, file, preview, mediaType, uploading: true };
-    setAttachments((prev) => (prev.length >= 10 ? prev : [...prev, entry]));
-
-    try {
-      const result = await ticketsApi.uploadMedia(file, mediaType);
-      setAttachments((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, uploading: false, fileId: result.file_id } : a)),
-      );
-    } catch {
-      setAttachments((prev) =>
-        prev.map((a) =>
-          a.id === id ? { ...a, uploading: false, error: t('support.uploadFailed') } : a,
-        ),
-      );
-    }
+    const refused = !kind
+      ? t(isHeic(file) ? 'postq.support.heicNotSupported' : 'postq.support.invalidFileType')
+      : kind === 'video' && file.size > TICKET_MEDIA_MAX_BYTES
+        ? t('postq.support.fileTooLarge')
+        : undefined;
+    const entry: MediaAttachment = {
+      id,
+      file,
+      preview,
+      mediaType: kind ?? 'photo',
+      uploading: false,
+      error: refused,
+      refused: !!refused,
+    };
+    setAttachments((prev) => [...prev, entry]);
+    if (!refused) void uploadAttachment(entry, setAttachments);
   };
 
   const createMutation = useMutation({
@@ -425,47 +460,80 @@ export default function Support() {
   const AttachmentsPreview = ({
     items,
     onRemove,
+    onRetry,
   }: {
     items: MediaAttachment[];
     onRemove: (idx: number) => void;
-  }) =>
-    items.length === 0 ? null : (
-      <div className="mt-2 flex flex-wrap gap-2">
-        {items.map((att, idx) => (
-          <div key={idx} className="relative">
-            {att.preview ? (
-              <img
-                src={att.preview}
-                alt={t('common.preview')}
-                loading="lazy"
-                className="h-16 w-16 rounded-[var(--rd-radius-sm)] border border-[var(--rd-border)] object-cover"
-              />
-            ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-[var(--rd-radius-sm)] bg-[var(--rd-chip-hover)] text-xs text-[var(--rd-caption)]">
-                {att.file.name.slice(-6)}
-              </div>
-            )}
-            {att.uploading && (
-              <div className="absolute inset-0 flex items-center justify-center rounded-[var(--rd-radius-sm)] bg-[var(--rd-page)]">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--rd-action)] border-t-transparent" />
-              </div>
-            )}
-            {att.error && (
-              <div className="absolute inset-0 flex items-center justify-center rounded-[var(--rd-radius-sm)] bg-[var(--rd-error-bg)]">
-                <span className="text-xs text-[var(--rd-error-text)]">!</span>
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => onRemove(idx)}
-              className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--rd-chip-hover)] text-[var(--rd-body)] hover:bg-[var(--rd-error-bg)] hover:text-white"
-            >
-              <CloseIcon className="h-4 w-4" />
-            </button>
-          </div>
-        ))}
+    onRetry: (att: MediaAttachment) => void;
+  }) => {
+    if (items.length === 0) return null;
+    const failed = items.filter((a) => a.error);
+    return (
+      <div className="mt-2 flex flex-col gap-2">
+        <div className="flex flex-wrap gap-2">
+          {items.map((att, idx) => (
+            <div key={att.id} className="relative">
+              {att.preview ? (
+                <img
+                  src={att.preview}
+                  alt={att.file.name}
+                  loading="lazy"
+                  className="h-16 w-16 rounded-[var(--rd-radius-sm)] border border-[var(--rd-border)] object-cover"
+                />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[var(--rd-radius-sm)] bg-[var(--rd-chip-hover)] px-1 text-center text-xs text-[var(--rd-caption)]">
+                  {att.file.name.slice(-8)}
+                </div>
+              )}
+              {att.uploading && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-[var(--rd-radius-sm)] bg-[var(--rd-page)]/80">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--rd-action)] border-t-transparent" />
+                </div>
+              )}
+              {att.error &&
+                (att.refused ? (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-[var(--rd-radius-sm)] bg-[var(--rd-error-bg)]/90">
+                    <RdIcon
+                      name="cabinet/circle-alert"
+                      size={20}
+                      className="text-[var(--rd-error-text)]"
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onRetry(att)}
+                    aria-label={t('postq.support.retryUpload')}
+                    title={t('postq.support.retryUpload')}
+                    className="absolute inset-0 flex items-center justify-center rounded-[var(--rd-radius-sm)] bg-[var(--rd-error-bg)]/90 text-[var(--rd-error-text)]"
+                  >
+                    <RdIcon name="cabinet/arrow-circle-sm" size={20} />
+                  </button>
+                ))}
+              <button
+                type="button"
+                onClick={() => onRemove(idx)}
+                aria-label={t('common.delete', 'Удалить')}
+                className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--rd-chip-hover)] text-[var(--rd-body)] hover:bg-[var(--rd-error-bg)] hover:text-[var(--rd-error-text)]"
+              >
+                <CloseIcon className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+        {failed.length > 0 && (
+          <ul className="rd-p-sm flex flex-col gap-1 text-[var(--rd-error-text)]" role="alert">
+            {failed.map((att) => (
+              <li key={att.id} className="[overflow-wrap:anywhere]">
+                {att.file.name}: {att.error}
+                {!att.refused && ` ${t('postq.support.retryHint')}`}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     );
+  };
 
   const telegramContact = supportConfig ? resolveSupportContact(supportConfig) : null;
   const items = tickets?.items ?? [];
@@ -745,17 +813,20 @@ export default function Support() {
                   <input
                     ref={createFileInputRef}
                     type="file"
-                    accept={Object.keys(MEDIA_TYPES).join(',')}
+                    accept={TICKET_MEDIA_ACCEPT}
                     multiple
                     className="hidden"
                     onChange={(e) => {
                       const files = Array.from(e.target.files || []);
-                      files.forEach((file) => handleFileSelect(file, setCreateAttachments));
+                      files
+                        .slice(0, Math.max(0, 10 - createAttachments.length))
+                        .forEach((file) => handleFileSelect(file, setCreateAttachments));
                       e.target.value = '';
                     }}
                   />
                   <AttachmentsPreview
                     items={createAttachments}
+                    onRetry={(att) => void uploadAttachment(att, setCreateAttachments)}
                     onRemove={(idx) =>
                       setCreateAttachments((prev) => {
                         const removed = prev[idx];
@@ -938,12 +1009,14 @@ export default function Support() {
                   <input
                     ref={replyFileInputRef}
                     type="file"
-                    accept={Object.keys(MEDIA_TYPES).join(',')}
+                    accept={TICKET_MEDIA_ACCEPT}
                     multiple
                     className="hidden"
                     onChange={(e) => {
                       const files = Array.from(e.target.files || []);
-                      files.forEach((file) => handleFileSelect(file, setReplyAttachments));
+                      files
+                        .slice(0, Math.max(0, 10 - replyAttachments.length))
+                        .forEach((file) => handleFileSelect(file, setReplyAttachments));
                       e.target.value = '';
                     }}
                   />
@@ -951,6 +1024,7 @@ export default function Support() {
                   <div className="flex flex-col gap-2 rounded-[24px] border-2 border-transparent bg-[var(--rd-field)] p-2 focus-within:border-[var(--rd-action)]">
                     <AttachmentsPreview
                       items={replyAttachments}
+                      onRetry={(att) => void uploadAttachment(att, setReplyAttachments)}
                       onRemove={(idx) =>
                         setReplyAttachments((prev) => {
                           const removed = prev[idx];

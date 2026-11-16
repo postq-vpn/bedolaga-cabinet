@@ -162,7 +162,223 @@ const app = (name, featured = false) => ({
   ],
 });
 
+/** The user's subscription; a blank expired one when there is none yet. */
+function ensureSubscription() {
+  let s = db.subscriptions[0];
+  if (!s) {
+    s = {
+      id: 1,
+      status: 'expired',
+      is_trial: false,
+      start_date: nowIso(),
+      end_date: nowIso(),
+      traffic_used_gb: 0,
+      connected_squads: SERVERS.map((x) => x.uuid),
+      servers: SERVERS.map((x) => ({ ...x, country_code: null })),
+      autopay_enabled: false,
+      autopay_days_before: 3,
+      subscription_url: 'https://sub.postq.space/mock-subscription-token',
+      subscription_crypto_link: null,
+      hide_subscription_link: false,
+      tariff_id: TARIFF.id,
+      tariff_name: TARIFF.name,
+      traffic_limit_gb: 0,
+      device_limit: TARIFF.devices,
+    };
+    db.subscriptions.push(s);
+  }
+  return s;
+}
+
+// ─── Platega SBP auto-debit (recurrent) ───────────────────────────────────
+// Binding = PENDING until confirmed on the fake bank page (/mock-sbp/:id),
+// then ACTIVE and charged monthly, like the bot (the tariff's shortest period).
+// MOCK_SBP=off answers as the bot does with PLATEGA_RECURRENT_ENABLED=false.
+
+export const sbpEnabled = process.env.MOCK_SBP !== 'off';
+const sbpBindings = new Map();
+const SBP_DAYS = 30;
+
+const originOf = (headers) => {
+  if (headers.origin) return headers.origin;
+  try {
+    return new URL(headers.referer).origin;
+  } catch {
+    return 'http://localhost:5173';
+  }
+};
+
+/** Balance auto-renewal switched on: the bot cancels the SBP binding. */
+export function cancelSbp(subscriptionId) {
+  sbpBindings.delete(subscriptionId);
+}
+
+/** Devices changed: a binding priced for another count is closed (as the bot does). */
+export function sbpOnDevicesChanged(subscription) {
+  const b = sbpBindings.get(subscription.id);
+  if (!b || b.devices === subscription.device_limit) return false;
+  sbpBindings.delete(subscription.id);
+  return true;
+}
+
+// As the bot: Platega charges per month or year only; a chosen 90/180 days is refused.
+const sbpPeriodOk = (days) => (days >= 28 && days <= 31) || (days >= 350 && days <= 380);
+const sbpPeriodRefused = {
+  __status: 400,
+  body: { detail: 'Автосписание через СБП доступно для срока 1 месяц или 1 год' },
+};
+
+function sbpBind(s, origin, { devices, purchase, days = SBP_DAYS }) {
+  const { count, total } = priceOf(TARIFF.id, days, devices ?? s.device_limit);
+  const b = {
+    status: 'PENDING',
+    interval: days >= 350 ? 4 : 3,
+    amount_kopeks: total,
+    charge_days: days,
+    next_charge_at: null,
+    // Enabling keeps the current count; a purchase takes the chosen one.
+    devices: purchase ? count : s.device_limit,
+    purchase,
+    origin,
+    redirect_url: `${origin}/api/mock-sbp/${s.id}`,
+  };
+  sbpBindings.set(s.id, b);
+  s.autopay_enabled = false;
+  return b;
+}
+
+const sbpOff = { __status: 403, body: { detail: 'Platega recurrent disabled' } };
+
+function sbpPage(id, b) {
+  const body = !b
+    ? '<h1>Привязка не найдена</h1><p>Mock перезапускался или привязку отменили.</p>'
+    : b.status !== 'PENDING'
+      ? `<h1>Привязка уже ${b.status === 'ACTIVE' ? 'подтверждена' : 'обработана'}</h1>
+         <a class="btn" href="${b.origin}/">Вернуться в кабинет</a>`
+      : `<p class="caption">Тестовый банк · СБП · подписка №${id}</p>
+         <h1>${(b.amount_kopeks / 100).toLocaleString('ru-RU')} ₽ ${b.interval === 4 ? 'раз в год' : 'ежемесячно'}</h1>
+         <p class="caption">Получатель: postq. Первое списание — сейчас.</p>
+         <a class="btn" href="/api/mock-sbp/${id}/confirm">Подтвердить привязку</a>
+         <a class="btn secondary" href="/api/mock-sbp/${id}/decline">Отклонить</a>`;
+  return `<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Привязка СБП — тестовый банк</title>
+<style>
+  body { margin: 0; font: 16px/24px system-ui, sans-serif; background: #f4f4f4; color: #111; }
+  .bar { padding: 12px 16px; background: #fff3c4; font-size: 12px; line-height: 16px; }
+  main { max-width: 400px; margin: 48px auto; padding: 32px; background: #fff; border-radius: 16px; }
+  h1 { font-size: 28px; line-height: 36px; margin: 8px 0 16px; }
+  .caption { color: #666; margin: 0; }
+  .btn { display: block; margin-top: 16px; padding: 14px; border-radius: 12px; background: #1d1d1f;
+    color: #fff; text-align: center; text-decoration: none; }
+  .btn.secondary { background: #eee; color: #111; }
+</style></head>
+<body><div class="bar">Mock: это не настоящий банк, деньги не списываются.</div>
+<main>${body}</main></body></html>`;
+}
+
+const sbpRoutes = [
+  [
+    'GET /cabinet/subscription/platega-recurrent',
+    () => {
+      if (!sbpEnabled) return sbpOff;
+      const s = db.subscriptions[0];
+      const b = s && sbpBindings.get(s.id);
+      if (!b) return { status: 'none' };
+      const { status, interval, amount_kopeks, next_charge_at, redirect_url } = b;
+      return { status, interval, amount_kopeks, next_charge_at, redirect_url };
+    },
+  ],
+  [
+    'POST /cabinet/subscription/platega-recurrent/enable',
+    ({ headers }) => {
+      if (!sbpEnabled) return sbpOff;
+      const s = db.subscriptions[0];
+      if (!s) return { __status: 404, body: { detail: 'No subscription found' } };
+      if (s.is_trial)
+        return {
+          __status: 400,
+          body: { detail: 'Trial subscriptions cannot enable SBP auto-payment' },
+        };
+      const b = sbpBind(s, originOf(headers), { purchase: false });
+      return { status: 'pending', redirect_url: b.redirect_url };
+    },
+  ],
+  [
+    'POST /cabinet/subscription/platega-recurrent/cancel',
+    () => {
+      const s = db.subscriptions[0];
+      if (s) cancelSbp(s.id);
+      return { status: 'cancelled' };
+    },
+  ],
+  [
+    'GET /cabinet/subscription/platega-recurrent/purchase-preview',
+    ({ query }) => {
+      if (!sbpEnabled) return { __status: 403, body: { detail: 'platega recurrent disabled' } };
+      const days = query.period_days ? Number(query.period_days) : SBP_DAYS;
+      if (!sbpPeriodOk(days)) return sbpPeriodRefused;
+      const { count, total } = priceOf(TARIFF.id, days, query.selected_device_limit);
+      return {
+        amount_kopeks: total,
+        charge_days: days,
+        interval: days >= 350 ? 4 : 3,
+        selected_device_limit: count,
+        quote_id: `rq-${Date.now()}`,
+        checkout_id: null,
+        expires_at: inDays(1 / 24),
+      };
+    },
+  ],
+  [
+    'POST /cabinet/subscription/platega-recurrent/purchase',
+    ({ query, headers }) => {
+      if (!sbpEnabled) return sbpOff;
+      const days = query.period_days ? Number(query.period_days) : SBP_DAYS;
+      if (!sbpPeriodOk(days)) return sbpPeriodRefused;
+      const s = ensureSubscription();
+      const b = sbpBind(s, originOf(headers), {
+        devices: query.selected_device_limit,
+        purchase: true,
+        days,
+      });
+      return { status: 'pending', redirect_url: b.redirect_url, subscription_id: s.id };
+    },
+  ],
+  // Fake bank page, opened through the Vite proxy (/api/mock-sbp/… → /mock-sbp/…).
+  ['GET /mock-sbp/:id', ({ params }) => ({ __html: sbpPage(params.id, sbpBindings.get(Number(params.id))) })],
+  [
+    'GET /mock-sbp/:id/:action',
+    ({ params }) => {
+      const id = Number(params.id);
+      const b = sbpBindings.get(id);
+      const s = db.subscriptions.find((x) => x.id === id);
+      if (!b || !s) return { __html: sbpPage(params.id, null), __status: 404 };
+      if (b.status === 'PENDING' && params.action === 'confirm') {
+        b.status = 'ACTIVE';
+        // The first charge renews right away (the bot extends on CONFIRMED).
+        const base = Math.max(Date.now(), new Date(s.end_date).getTime());
+        Object.assign(s, {
+          status: 'active',
+          device_limit: b.purchase ? b.devices : s.device_limit,
+          end_date: new Date(base + b.charge_days * 86400000).toISOString(),
+        });
+        b.next_charge_at = s.end_date;
+      } else if (params.action === 'decline') {
+        sbpBindings.delete(id);
+      } else if (params.action === 'pastdue' && b.status === 'ACTIVE') {
+        // Not linked anywhere: open /api/mock-sbp/1/pastdue by hand.
+        b.status = 'PAST_DUE';
+        b.next_charge_at = null;
+      }
+      return { __redirect: `${b.origin}/` };
+    },
+  ],
+];
+
 export const shopRoutes = [
+  ...sbpRoutes,
   // ─── Tariffs & purchase ──────────────────────────────────────────────────
   [
     'GET /cabinet/subscription/purchase-options',
@@ -178,6 +394,7 @@ export const shopRoutes = [
         subscription_is_expired: s ? subscriptionView(s).is_expired : false,
         has_subscription: !!s,
         all_tariffs_purchased: false,
+        platega_recurrent_enabled: sbpEnabled,
       };
     },
   ],
@@ -204,28 +421,12 @@ export const shopRoutes = [
       }
       db.user.balance_kopeks -= total;
       db.user.balance_rubles = rub(db.user.balance_kopeks);
-      let s = db.subscriptions[0];
-      if (!s) {
-        s = {
-          id: 1,
-          status: 'active',
-          is_trial: false,
-          start_date: nowIso(),
-          end_date: nowIso(),
-          traffic_used_gb: 0,
-          connected_squads: SERVERS.map((x) => x.uuid),
-          servers: SERVERS.map((x) => ({ ...x, country_code: null })),
-          autopay_enabled: false,
-          autopay_days_before: 3,
-          subscription_url: 'https://sub.postq.space/mock-subscription-token',
-          subscription_crypto_link: null,
-          hide_subscription_link: false,
-        };
-        db.subscriptions.push(s);
-      }
+      const s = ensureSubscription();
       const base = Math.max(Date.now(), new Date(s.end_date).getTime());
+      // A purchase converts the trial, as the bot does (is_trial = False).
       Object.assign(s, {
         status: 'active',
+        is_trial: false,
         tariff_id: t.id,
         tariff_name: t.name,
         traffic_limit_gb: 0,
@@ -255,11 +456,6 @@ export const shopRoutes = [
         balance_label: fmt(db.user.balance_kopeks),
       };
     },
-  ],
-  ['GET /cabinet/subscription/platega-recurrent', () => ({ enabled: false, active: false })],
-  [
-    'GET /cabinet/subscription/devices/price',
-    () => ({ price_per_device_kopeks: 9900, price_per_device_label: fmt(9900), available: true }),
   ],
 
   // ─── Connection ──────────────────────────────────────────────────────────

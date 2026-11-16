@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import Support from './Support';
+
+// The full suite runs many files in parallel: the 1 s default wait is too
+// tight for this page (lazy chunks, two uploads), it failed only under load.
+configure({ asyncUtilTimeout: 5000 });
 
 const api = vi.hoisted(() => ({ upload: vi.fn(), create: vi.fn(), reply: vi.fn() }));
 const ticket = {

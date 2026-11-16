@@ -10194,7 +10194,8 @@
       "nNews": "News",
       "nNewsDesc": "Important news and service updates",
       "nPromo": "Personal offers",
-      "nPromoDesc": "Discounts and special offers for you"
+      "nPromoDesc": "Discounts and special offers for you",
+      "payment": "برداشت خودکار"
     },
     "support": {
       "allTickets": "All requests",
@@ -10213,7 +10214,13 @@
       "team": "PostqVPN support",
       "replyPlaceholder": "Type your message...",
       "attachImage": "Attach an image",
-      "safety": "Don't send passwords or your subscription link: they give access to your VPN."
+      "safety": "Don't send passwords or your subscription link: they give access to your VPN.",
+      "invalidFileType": "این فایل قابل ارسال نیست. عکس‌های JPG، PNG، GIF، WebP و ویدیوهای MP4، MOV، WebM مناسب‌اند",
+      "heicNotSupported": "فرمت HEIC پشتیبانی نمی‌شود. از عکس اسکرین‌شات بگیرید یا آن را با فرمت JPG از «Files» انتخاب کنید",
+      "fileTooLarge": "فایل بزرگ‌تر از ۲۰ مگابایت است. ویدیو را کوتاه کنید یا از طریق ربات تلگرام بفرستید",
+      "uploadFailed": "بارگذاری انجام نشد",
+      "retryUpload": "بارگذاری دوباره",
+      "retryHint": "برای تلاش دوباره روی فایل بزنید"
     },
     "devices": {
       "title": "Devices",
@@ -10253,7 +10260,9 @@
       "outdatedShort": "VPN may not work on older versions. Update the app on each device.",
       "needVersion": "{{version}} or newer needed",
       "regionShort": "Change App Store region",
-      "supportShort": "Support"
+      "supportShort": "Support",
+      "sbpWillClose": "برداشت خودکار SBP خاموش می‌شود: مبلغ آن برای تعداد فعلی دستگاه‌ها تعیین شده است. پس از تغییر، دوباره آن را در صفحه اصلی با مبلغ جدید وصل کنید",
+      "sbpClosed": "برداشت خودکار SBP خاموش شد — آن را دوباره در صفحه اصلی با مبلغ جدید وصل کنید"
     },
     "purchase": {
       "step1": "Subscription period",
@@ -10361,6 +10370,70 @@
     "partner": {
       "approvedTitle": "You're a partner",
       "allOptional": "All fields are optional — fill in what you think matters."
+    },
+    "sbp": {
+      "title": "برداشت خودکار از طریق SBP",
+      "offText": "تمدید از حساب بانکی برداشت می‌شود، بدون نیاز به شارژ موجودی",
+      "connect": "اتصال",
+      "pendingText": "اتصال را در اپلیکیشن بانک تأیید کنید",
+      "openBank": "باز کردن بانک",
+      "pastDueText": "برداشت انجام نشد، بانک دوباره تلاش می‌کند",
+      "amountEvery": "{{amount}} {{interval}}",
+      "nextCharge": "بعدی {{date}}",
+      "disable": "غیرفعال کردن",
+      "confirmDisable": "برداشت خودکار SBP غیرفعال شود؟ اشتراک دیگر خودکار تمدید نمی‌شود.",
+      "disabled": "برداشت خودکار SBP غیرفعال شد",
+      "payButton": "پرداخت با SBP و تمدید خودکار",
+      "payHintNoPrice": "اولین برداشت اکنون، سپس به‌صورت خودکار. هر زمان می‌توانید آن را خاموش کنید.",
+      "activeText": "فعال",
+      "offerTitle": "با تمدید خودکار از طریق SBP",
+      "payHintMonth": "اکنون {{amount}} از حساب بانکی برداشت می‌شود و سپس هر ماه. از موجودی استفاده نمی‌شود؛ هر زمان می‌توانید خاموشش کنید",
+      "payHintYear": "اکنون {{amount}} از حساب بانکی برداشت می‌شود و سپس سالی یک بار. از موجودی استفاده نمی‌شود؛ هر زمان می‌توانید خاموشش کنید",
+      "payButtonAmount": "پرداخت {{amount}} با SBP",
+      "availableFor": "قابل استفاده برای مدت",
+      "or": "یا"
+    },
+    "authStatus": {
+      "wait": "چند ثانیه طول می‌کشد",
+      "signingIn": "در حال ورود به حساب",
+      "loginFailed": "ورود انجام نشد",
+      "toLogin": "بازگشت به ورود",
+      "linking": "در حال اتصال روش ورود",
+      "linkingTelegram": "در حال اتصال تلگرام",
+      "linked": "روش ورود متصل شد",
+      "linkFailed": "اتصال روش ورود انجام نشد",
+      "toProfile": "بازگشت به پروفایل",
+      "backToTelegram": "برای ادامه به تلگرام برگردید",
+      "openTelegram": "باز کردن تلگرام",
+      "emailChecking": "در حال تأیید ایمیل",
+      "emailConfirmed": "ایمیل تأیید شد",
+      "emailConfirmedText": "اکنون می‌توانید با ایمیل و رمز عبور وارد شوید. در حال باز کردن حساب کاربری",
+      "emailFailed": "تأیید ایمیل انجام نشد",
+      "emailFailedText": "لینک منقضی شده یا قبلاً استفاده شده است. در پروفایل ایمیل جدید درخواست کنید",
+      "emailBrokenLink": "لینک ایمیل به‌طور کامل باز نشد. دوباره آن را باز کنید یا در پروفایل ایمیل جدید درخواست کنید",
+      "invalidEmail": "آدرس ایمیل را بررسی کنید",
+      "passwordMinLength": "رمز عبور باید حداقل ۸ کاراکتر باشد",
+      "passwordsMismatch": "رمزهای عبور یکسان نیستند",
+      "codeInvalid": "کد اشتباه است یا منقضی شده",
+      "emailTakenNeedPassword": "این ایمیل به حساب دیگری متصل است. برای ادغام حساب‌ها رمز عبور آن را وارد کنید",
+      "emailTaken": "این ایمیل به حساب دیگری متصل است. اگر متعلق به شماست، با آن وارد شوید یا با پشتیبانی تماس بگیرید",
+      "emailAlreadyLinked": "شما از قبل یک ایمیل تأییدشده دارید",
+      "verificationResent": "ایمیل دوباره ارسال شد",
+      "telegramUnavailable": "اتصال تلگرام در اینجا فعلاً ممکن نیست — این کار را در ربات @{{bot}} انجام دهید",
+      "emailRequired": "ایمیل را وارد کنید",
+      "newEmail": "ایمیل جدید",
+      "sameEmail": "این ایمیل فعلی شماست",
+      "emailUsed": "این ایمیل توسط حساب دیگری استفاده شده است",
+      "codeWrong": "کد اشتباه است",
+      "codeExpired": "کد منقضی شده — کد جدید درخواست کنید",
+      "tooManyRequests": "تلاش‌ها زیاد است — کمی بعد دوباره امتحان کنید",
+      "emailChanged": "ایمیل تغییر کرد",
+      "verificationRequired": "برای ورود با ایمیل، آن را تأیید کنید"
+    },
+    "autopay": {
+      "title": "تمدید خودکار از موجودی",
+      "caption_one": "{{count}} روز قبل از انقضا از موجودی کسر می‌شود",
+      "caption_other": "{{count}} روز قبل از انقضا از موجودی کسر می‌شود"
     }
   }
 }

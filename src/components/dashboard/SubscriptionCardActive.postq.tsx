@@ -15,6 +15,7 @@ import { formatTrafficOf } from '../../utils/formatTraffic';
 import { needsTariff, tariffSelectionPath } from '../../utils/legacySubscription';
 import type { Subscription } from '../../types';
 import { SubscriptionMenu } from '@/components/postq/dashboard/SubscriptionMenu';
+import { SbpAutopayRow, useSbpAutopay } from '@/components/postq/dashboard/SbpAutopay';
 
 interface SubscriptionCardActiveProps {
   subscription: Subscription;
@@ -49,6 +50,10 @@ export default function SubscriptionCardActive({
   const navigate = useNavigate();
   const haptic = useHaptic();
   const [devicesOpen, setDevicesOpen] = useState(false);
+  const sbp = useSbpAutopay(subscription);
+  // SBP bound (or being bound): the bank renews, the balance switch would only
+  // compete with it — the bot cancels one when the other is switched on.
+  const sbpBound = sbp.state === 'pending' || sbp.state === 'active' || sbp.state === 'past_due';
 
   const unknownTraffic = hasUnknownManagedTraffic(subscription, trafficData);
   const usedPercent = trafficData?.traffic_used_percent ?? subscription.traffic_used_percent;
@@ -106,13 +111,16 @@ export default function SubscriptionCardActive({
           <SubscriptionMenu subscription={subscription} />
         </div>
 
-        <AutopayToggle
-          subscription={subscription}
-          subscriptionId={subscription.id}
-          accentColor=""
-          offColor=""
-          variant="postq"
-        />
+        {!sbpBound && (
+          <AutopayToggle
+            subscription={subscription}
+            subscriptionId={subscription.id}
+            accentColor=""
+            offColor=""
+            variant="postq"
+          />
+        )}
+        <SbpAutopayRow subscription={subscription} sbp={sbp} />
 
         <div className="grid grid-cols-2 gap-3 sm:flex sm:gap-6">
           <StatTile

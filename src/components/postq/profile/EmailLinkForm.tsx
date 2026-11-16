@@ -51,10 +51,10 @@ export function EmailLinkForm() {
     },
     onError: (err) => {
       const detail = getApiErrorMessage(err, '');
-      if (detail.includes('merge')) setError(t('profile.emailMergePasswordRequired'));
-      else if (detail.includes('already registered')) setError(t('profile.emailAlreadyRegistered'));
+      if (detail.includes('merge')) setError(t('postq.authStatus.emailTakenNeedPassword'));
+      else if (detail.includes('already registered')) setError(t('postq.authStatus.emailTaken'));
       else if (detail.includes('already have a verified email'))
-        setError(t('profile.alreadyHaveEmail'));
+        setError(t('postq.authStatus.emailAlreadyLinked'));
       else setError(getLocalizedApiErrorMessage(err, t('common.error'), t));
     },
   });
@@ -65,7 +65,7 @@ export function EmailLinkForm() {
       if (response.merge_token) navigate(`/merge/${response.merge_token}`, { replace: true });
     },
     onError: (err) =>
-      setError(getLocalizedApiErrorMessage(err, t('profile.emailMergeCodeInvalid'), t)),
+      setError(getLocalizedApiErrorMessage(err, t('postq.authStatus.codeInvalid'), t)),
   });
 
   const back = (to: Step) => {
@@ -98,7 +98,7 @@ export function EmailLinkForm() {
           onSubmit={(e) => {
             e.preventDefault();
             if (!isValidEmail(email.trim())) {
-              setError(t('profile.invalidEmail'));
+              setError(t('postq.authStatus.invalidEmail'));
               return;
             }
             back('password');
@@ -125,11 +125,11 @@ export function EmailLinkForm() {
           onSubmit={(e) => {
             e.preventDefault();
             if (password.length < 8) {
-              setError(t('profile.passwordMinLength'));
+              setError(t('postq.authStatus.passwordMinLength'));
               return;
             }
             if (password !== confirm) {
-              setError(t('profile.passwordsMismatch'));
+              setError(t('postq.authStatus.passwordsMismatch'));
               return;
             }
             setError(null);
@@ -174,7 +174,7 @@ export function EmailLinkForm() {
           onSubmit={(e) => {
             e.preventDefault();
             if (!/^\d{6}$/.test(code.trim())) {
-              setError(t('profile.emailMergeCodeInvalid'));
+              setError(t('postq.authStatus.codeInvalid'));
               return;
             }
             setError(null);

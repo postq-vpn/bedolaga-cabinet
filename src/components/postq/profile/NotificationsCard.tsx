@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { notificationsApi, type NotificationSettings } from '@/api/notifications';
+import { subscriptionApi } from '@/api/subscription';
 
 /** Number field with up/down arrows (Figma «Редактирование порога»). */
 function Stepper({
@@ -96,6 +97,13 @@ function Row({
 /** «Уведомления» with a local draft saved by one button, as in the frame. */
 export function NotificationsCard() {
   const { t } = useTranslation();
+  // Paid traffic is unlimited: the warning only means something on a limited
+  // (trial) subscription, so it's offered only then.
+  const { data: subs } = useQuery({
+    queryKey: ['subscriptions-list'],
+    queryFn: subscriptionApi.getSubscriptions,
+  });
+  const trafficLimited = (subs?.subscriptions ?? []).some((s) => s.traffic_limit_gb > 0);
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ['notification-settings'],
@@ -143,25 +151,27 @@ export function NotificationsCard() {
                 {t('postq.profile.expiryAfter')}
               </div>
             </Row>
-            <Row
-              title={t('postq.profile.nTraffic')}
-              description={t('postq.profile.nTrafficDesc')}
-              checked={draft.traffic_warning_enabled}
-              onToggle={(v) => set('traffic_warning_enabled', v)}
-            >
-              <div className="rd-p-md flex flex-wrap items-center gap-3 text-[var(--rd-body)]">
-                {t('postq.profile.trafficAt')}
-                <Stepper
-                  label={t('profile.notifications.atPercent')}
-                  value={draft.traffic_warning_percent}
-                  min={50}
-                  max={90}
-                  step={10}
-                  onChange={(v) => set('traffic_warning_percent', v)}
-                />
-                %
-              </div>
-            </Row>
+            {trafficLimited && (
+              <Row
+                title={t('postq.profile.nTraffic')}
+                description={t('postq.profile.nTrafficDesc')}
+                checked={draft.traffic_warning_enabled}
+                onToggle={(v) => set('traffic_warning_enabled', v)}
+              >
+                <div className="rd-p-md flex flex-wrap items-center gap-3 text-[var(--rd-body)]">
+                  {t('postq.profile.trafficAt')}
+                  <Stepper
+                    label={t('profile.notifications.atPercent')}
+                    value={draft.traffic_warning_percent}
+                    min={50}
+                    max={90}
+                    step={10}
+                    onChange={(v) => set('traffic_warning_percent', v)}
+                  />
+                  %
+                </div>
+              </Row>
+            )}
             <Row
               title={t('postq.profile.nBalance')}
               description={t('postq.profile.nBalanceDesc')}

@@ -2,7 +2,7 @@
 // Return { __status, body } for a non-200 answer. Shapes follow src/types and src/api.
 
 import { db, nowIso, inDays, rub, subscriptionView, subscriptionListItem } from './state.mjs';
-import { shopRoutes } from './routes-shop.mjs';
+import { cancelSbp, sbpOnDevicesChanged, shopRoutes } from './routes-shop.mjs';
 import { notifyRoutes } from './notify.mjs';
 import { adminTicketRoutes } from './routes-admin-tickets.mjs';
 
@@ -679,6 +679,7 @@ export const routes = new Map([
       s.device_limit += n;
       return {
         success: true,
+        sbp_recurring_cancelled: sbpOnDevicesChanged(s),
         message: 'ok',
         devices_added: n,
         new_device_limit: s.device_limit,
@@ -695,7 +696,13 @@ export const routes = new Map([
       const s = db.subscriptions[0];
       const old = s.device_limit;
       s.device_limit = Math.max(1, Number(body.new_device_limit) || old);
-      return { success: true, message: 'ok', old_device_limit: old, new_device_limit: s.device_limit };
+      return {
+        success: true,
+        message: 'ok',
+        old_device_limit: old,
+        new_device_limit: s.device_limit,
+        sbp_recurring_cancelled: sbpOnDevicesChanged(s),
+      };
     },
   ],
   ['POST /cabinet/subscription/devices/save-cart', () => ({ success: true })],
@@ -704,6 +711,8 @@ export const routes = new Map([
     ({ body }) => {
       const s = db.subscriptions[0];
       if (s) s.autopay_enabled = !!body.enabled;
+      // As in the bot: balance auto-renewal replaces the SBP binding.
+      if (s && s.autopay_enabled) cancelSbp(s.id);
       return { success: true, autopay_enabled: s?.autopay_enabled ?? false };
     },
   ],

@@ -12,6 +12,8 @@ import { RdIcon } from '../RdIcon';
 import { RdDialog } from '../RdDialog';
 import { ProgressTrack } from '../ui';
 import { TopUpDialog } from '../payment/TopUpDialog';
+import { useToast } from '@/components/Toast';
+import { useSbpRecurring } from './SbpAutopay';
 
 const CONFIRM_WINDOW = 5;
 /** Longer lists scroll inside the dialog. */
@@ -94,17 +96,23 @@ export function DevicesDialog({
       'balance',
       'device-reduction',
       'device-price',
+      'sbp-recurring',
     ]) {
       queryClient.invalidateQueries({ queryKey: [key] });
     }
   };
 
+  // An SBP binding is priced for the current count and Platega can't change
+  // its amount: the bot closes it on any change, the user re-connects.
+  const sbp = useSbpRecurring(subscriptionId, open);
+  const { showToast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [missing, setMissing] = useState<number | null>(null);
   const [confirmHwid, setConfirmHwid] = useState<string | null>(null);
   const [topUpOpen, setTopUpOpen] = useState(false);
   // The shortfall belongs to the amount it was computed for: another count
   // (or reopening the dialog) brings the buy button back.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: target/open are the triggers, not inputs.
   useEffect(() => {
     setMissing(null);
   }, [target, open]);
@@ -159,7 +167,12 @@ export function DevicesDialog({
       setError(null);
       setMissing(null);
     },
-    onSuccess: refresh,
+    onSuccess: (data) => {
+      refresh();
+      if ((data as { sbp_recurring_cancelled?: boolean } | undefined)?.sbp_recurring_cancelled) {
+        showToast({ type: 'info', message: t('postq.devices.sbpClosed') });
+      }
+    },
     onError: (e) => {
       const insufficient = getInsufficientBalanceError(e);
       if (insufficient) {
@@ -431,6 +444,12 @@ export function DevicesDialog({
           {delta < 0 && devices.length > target && (
             <p className="rd-p-sm text-center text-[var(--rd-caption)]">
               {t('postq.devices.reduceHint', { count: devices.length - target })}
+            </p>
+          )}
+
+          {delta !== 0 && sbp.bound && (
+            <p className="rd-p-sm rounded-[var(--rd-radius-sm)] bg-[var(--rd-field)] px-4 py-3 text-[var(--rd-body)]">
+              {t('postq.devices.sbpWillClose')}
             </p>
           )}
 

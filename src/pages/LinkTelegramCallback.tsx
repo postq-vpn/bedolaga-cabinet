@@ -7,6 +7,7 @@ import { useToast } from '../components/Toast';
 import { LINK_TELEGRAM_STATE_KEY } from './ConnectedAccounts';
 import { getErrorDetail } from '../utils/oauth';
 import { safeSession } from '../utils/safeStorage';
+import { StatusScreen } from '@/components/postq/StatusScreen';
 
 export default function LinkTelegramCallback() {
   const { t } = useTranslation();
@@ -29,8 +30,8 @@ export default function LinkTelegramCallback() {
       safeSession.removeItem(LINK_TELEGRAM_STATE_KEY);
 
       if (!csrfState || !savedState || csrfState !== savedState) {
-        showToast({ type: 'error', message: t('profile.accounts.linkError') });
-        navigate('/profile/accounts', { replace: true });
+        showToast({ type: 'error', message: t('postq.authStatus.linkFailed') });
+        navigate('/profile', { replace: true });
         return;
       }
 
@@ -41,8 +42,8 @@ export default function LinkTelegramCallback() {
       const hash = searchParams.get('hash');
 
       if (!id || !firstName || !authDate || !hash) {
-        showToast({ type: 'error', message: t('profile.accounts.linkError') });
-        navigate('/profile/accounts', { replace: true });
+        showToast({ type: 'error', message: t('postq.authStatus.linkFailed') });
+        navigate('/profile', { replace: true });
         return;
       }
 
@@ -50,8 +51,8 @@ export default function LinkTelegramCallback() {
       const parsedAuthDate = parseInt(authDate, 10);
 
       if (Number.isNaN(parsedId) || Number.isNaN(parsedAuthDate)) {
-        showToast({ type: 'error', message: t('profile.accounts.linkError') });
-        navigate('/profile/accounts', { replace: true });
+        showToast({ type: 'error', message: t('postq.authStatus.linkFailed') });
+        navigate('/profile', { replace: true });
         return;
       }
 
@@ -69,19 +70,19 @@ export default function LinkTelegramCallback() {
         if (response.merge_required && response.merge_token) {
           navigate(`/merge/${response.merge_token}`, { replace: true });
         } else {
-          showToast({ type: 'success', message: t('profile.accounts.linkSuccess') });
-          navigate('/profile/accounts', { replace: true });
+          showToast({ type: 'success', message: t('postq.authStatus.linked') });
+          navigate('/profile', { replace: true });
         }
       } catch (err: unknown) {
         showToast({
           type: 'error',
           message: getLocalizedApiErrorMessage(
             err,
-            getErrorDetail(err) || t('profile.accounts.linkError'),
+            getErrorDetail(err) || t('postq.authStatus.linkFailed'),
             t,
           ),
         });
-        navigate('/profile/accounts', { replace: true });
+        navigate('/profile', { replace: true });
       }
     };
 
@@ -89,15 +90,10 @@ export default function LinkTelegramCallback() {
   }, [searchParams, navigate, showToast, t]);
 
   return (
-    <div className="min-h-viewport flex items-center justify-center">
-      <div className="fixed inset-0 bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950" />
-      <div className="relative text-center">
-        <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-accent-500 border-t-transparent" />
-        <h2 className="text-lg font-semibold text-dark-50">
-          {t('profile.accounts.linkingTelegram')}
-        </h2>
-        <p className="mt-2 text-sm text-dark-400">{t('common.loading')}</p>
-      </div>
-    </div>
+    <StatusScreen
+      state="loading"
+      title={t('postq.authStatus.linkingTelegram')}
+      text={t('postq.authStatus.wait')}
+    />
   );
 }

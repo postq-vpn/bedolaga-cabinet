@@ -61,9 +61,11 @@ export function AutopayToggle({
     return (
       <div className="flex min-h-[76px] items-center justify-between gap-4 rounded-[var(--rd-radius-md)] bg-[var(--rd-field)] px-6 py-4">
         <div className="rd-p-md flex min-w-0 flex-col gap-1">
-          <span className="text-[var(--rd-heading)]">{t('subscription.autoRenewal')}</span>
+          {/* Says where the money comes from: next to it may sit the SBP row,
+              which charges the bank account instead. */}
+          <span className="text-[var(--rd-heading)]">{t('postq.autopay.title')}</span>
           <span className="text-[var(--rd-caption)]">
-            {t('subscription.daysBeforeExpiry', { count: subscription.autopay_days_before })}
+            {t('postq.autopay.caption', { count: subscription.autopay_days_before })}
           </span>
         </div>
         <button
@@ -72,7 +74,7 @@ export function AutopayToggle({
           disabled={autopayMutation.isPending}
           role="switch"
           aria-checked={subscription.autopay_enabled}
-          aria-label={t('subscription.autopay', 'Auto-payment')}
+          aria-label={t('postq.autopay.title')}
           className="rd-switch"
         />
       </div>
