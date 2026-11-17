@@ -242,8 +242,10 @@ function sbpBind(s, origin, { devices, purchase, days = SBP_DAYS }) {
     origin,
     redirect_url: `${origin}/api/mock-sbp/${s.id}`,
   };
+  b.created_at = Date.now();
   sbpBindings.set(s.id, b);
-  s.autopay_enabled = false;
+  // As the bot: balance auto-renewal is switched off only once the bank
+  // confirms (see the confirm action) — an abandoned attempt keeps it.
   return b;
 }
 
@@ -286,8 +288,16 @@ const sbpRoutes = [
       const s = db.subscriptions[0];
       const b = s && sbpBindings.get(s.id);
       if (!b) return { status: 'none' };
+      // Platega fails an unconfirmed binding after 30 minutes (MOCK_SBP_CONFIRM_MS to shorten).
+      const confirmMs = Number(process.env.MOCK_SBP_CONFIRM_MS || 30 * 60 * 1000);
+      if (b.status === 'PENDING' && Date.now() - b.created_at > confirmMs) {
+        sbpBindings.delete(s.id);
+        return { status: 'none' };
+      }
       const { status, interval, amount_kopeks, next_charge_at, redirect_url } = b;
-      return { status, interval, amount_kopeks, next_charge_at, redirect_url };
+      const confirm_until =
+        status === 'PENDING' ? new Date(b.created_at + confirmMs).toISOString() : null;
+      return { status, interval, amount_kopeks, next_charge_at, redirect_url, confirm_until };
     },
   ],
   [
@@ -357,6 +367,7 @@ const sbpRoutes = [
       if (!b || !s) return { __html: sbpPage(params.id, null), __status: 404 };
       if (b.status === 'PENDING' && params.action === 'confirm') {
         b.status = 'ACTIVE';
+        s.autopay_enabled = false;
         // The first charge renews right away (the bot extends on CONFIRMED).
         const base = Math.max(Date.now(), new Date(s.end_date).getTime());
         Object.assign(s, {

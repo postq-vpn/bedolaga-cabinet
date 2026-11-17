@@ -130,7 +130,12 @@ export function SbpAutopayRow({
   const toggle = async () => {
     if (busy) return;
     if (!on) return enable.mutate();
-    if (await confirm(t('postq.sbp.confirmDisable'), t('postq.sbp.disable'))) cancel.mutate();
+    const ok = await confirm(
+      t('postq.sbp.confirmDisable'),
+      t('postq.sbp.disable'),
+      t('postq.sbp.confirmDisableTitle'),
+    );
+    if (ok) cancel.mutate();
   };
 
   const next = info?.next_charge_at
@@ -140,13 +145,27 @@ export function SbpAutopayRow({
       })
     : null;
   const bankUrl = state === 'pending' ? info?.redirect_url : null;
+  // Platega gives 30 minutes to confirm in the bank, then drops the attempt
+  // (the row turns off by itself; balance auto-renewal stays as it was).
+  const confirmUntil =
+    state === 'pending' && info?.confirm_until ? new Date(info.confirm_until) : null;
+  const confirmExpired = !!confirmUntil && confirmUntil.getTime() <= Date.now();
   const caption =
     state === 'off' ? (
       t('postq.sbp.offText')
     ) : state === 'pending' ? (
       <>
-        {t('postq.sbp.pendingText')}
-        {bankUrl && (
+        {confirmExpired
+          ? t('postq.sbp.pendingExpired')
+          : confirmUntil
+            ? t('postq.sbp.pendingUntil', {
+                time: confirmUntil.toLocaleTimeString(uiLocale(), {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }),
+              })
+            : t('postq.sbp.pendingText')}
+        {bankUrl && !confirmExpired && (
           <>
             {' · '}
             <button

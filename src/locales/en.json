@@ -10372,7 +10372,7 @@
       "amountEvery": "{{amount}} {{interval}}",
       "nextCharge": "next on {{date}}",
       "disable": "Disable",
-      "confirmDisable": "Disable SBP auto-debit? The subscription will stop renewing by itself.",
+      "confirmDisable": "The subscription will stop renewing by itself. You can turn it back on any time.",
       "disabled": "SBP auto-debit disabled",
       "payButton": "Pay via SBP with auto-renewal",
       "payHintNoPrice": "First charge now, then automatically. You can turn it off any time.",
@@ -10382,7 +10382,10 @@
       "payHintYear": "We charge {{amount}} to your bank account now and once a year after. The balance isn't used; turn it off any time",
       "payButtonAmount": "Pay {{amount}} via SBP",
       "availableFor": "Available for",
-      "or": "or"
+      "or": "or",
+      "pendingUntil": "Confirm in your banking app by {{time}}",
+      "pendingExpired": "Time to confirm is up — switch it on again",
+      "confirmDisableTitle": "Turn off SBP auto-debit?"
     },
     "authStatus": {
       "wait": "This takes a couple of seconds",

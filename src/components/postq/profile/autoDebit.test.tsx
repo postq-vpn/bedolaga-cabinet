@@ -29,7 +29,9 @@ vi.mock('react-i18next', () => ({
 vi.mock('@/hooks/useCurrency', () => ({
   useCurrency: () => ({ formatAmount: String, currencySymbol: '₽' }),
 }));
-vi.mock('@/platform', () => ({ usePlatform: () => ({ platform: 'web', openLink: vi.fn() }) }));
+vi.mock('@/platform', () => ({
+  usePlatform: () => ({ platform: 'web', openLink: vi.fn(), capabilities: {} }),
+}));
 vi.mock('@/platform/hooks/useNativeDialog', () => ({ useDestructiveConfirm: () => api.confirm }));
 vi.mock('@/components/Toast', () => ({ useToast: () => ({ showToast: api.toast }) }));
 vi.mock('@/utils/openPaymentUrl', () => ({ openPaymentUrl: api.open }));
@@ -144,4 +146,26 @@ it('profile shows nothing when SBP is off or there is only a trial', async () =>
   renderWith(<AutoDebitSection />);
   await settle();
   expect(screen.queryByText('postq.profile.payment')).toBeNull();
+});
+
+it('waiting for the bank shows until when to confirm', async () => {
+  api.sbp.mockResolvedValue({
+    status: 'PENDING',
+    redirect_url: 'https://bank/y',
+    confirm_until: new Date(Date.now() + 20 * 60_000).toISOString(),
+  });
+  renderWith(<Row subscription={paid} />);
+  expect(await screen.findByText(/postq\.sbp\.pendingUntil/)).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'postq.sbp.openBank' })).toBeTruthy();
+});
+
+it('after the 30 minutes it says so and no longer sends to the bank', async () => {
+  api.sbp.mockResolvedValue({
+    status: 'PENDING',
+    redirect_url: 'https://bank/y',
+    confirm_until: new Date(Date.now() - 60_000).toISOString(),
+  });
+  renderWith(<Row subscription={paid} />);
+  expect(await screen.findByText('postq.sbp.pendingExpired')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'postq.sbp.openBank' })).toBeNull();
 });

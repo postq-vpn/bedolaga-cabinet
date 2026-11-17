@@ -103,6 +103,12 @@ export function useDestructiveConfirm() {
 
   return useCallback(
     async (message: string, actionText = 'Delete', title?: string) => {
+      // postq: always its own dialog, in Telegram too. Telegram's popup looks
+      // like the client (not the cabinet) and labels «Cancel» in the client's
+      // language — the same action looked different in the browser and the app.
+      if (isPostqDesign()) {
+        return confirmDialog({ message, title, confirmLabel: actionText, destructive: true });
+      }
       if (dialog.isNative) {
         const result = await dialog.popup({
           title,
@@ -111,9 +117,7 @@ export function useDestructiveConfirm() {
         });
         return result === 'confirm';
       }
-      // Keeps the action's own label and the red button (window.confirm can't).
-      if (!isPostqDesign()) return dialog.confirm(message, title);
-      return confirmDialog({ message, title, confirmLabel: actionText, destructive: true });
+      return dialog.confirm(message, title);
     },
     [dialog],
   );

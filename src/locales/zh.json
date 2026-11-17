@@ -10243,7 +10243,7 @@
       "amountEvery": "{{amount}} {{interval}}",
       "nextCharge": "下次 {{date}}",
       "disable": "关闭",
-      "confirmDisable": "关闭 SBP 自动扣款?订阅将不再自动续费。",
+      "confirmDisable": "订阅将不再自动续费。可随时重新开启。",
       "disabled": "SBP 自动扣款已关闭",
       "payButton": "通过 SBP 支付并自动续费",
       "payHintNoPrice": "现在首次扣款,之后自动续费。可随时关闭。",
@@ -10253,7 +10253,10 @@
       "payHintYear": "现在从银行账户扣款 {{amount}},之后每年扣款一次。不使用余额,可随时关闭",
       "payButtonAmount": "通过 SBP 支付 {{amount}}",
       "availableFor": "适用于期限",
-      "or": "或"
+      "or": "或",
+      "pendingUntil": "请在 {{time}} 前在银行应用中确认",
+      "pendingExpired": "确认时间已过 — 请重新开启",
+      "confirmDisableTitle": "关闭 SBP 自动扣款?"
     },
     "authStatus": {
       "wait": "只需几秒钟",

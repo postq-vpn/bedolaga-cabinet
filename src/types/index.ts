@@ -839,6 +839,8 @@ export interface SbpRecurringInfo {
   amount_kopeks?: number;
   next_charge_at?: string | null;
   redirect_url?: string | null;
+  /** PENDING: until when the bank confirmation is accepted (Platega gives 30 min). */
+  confirm_until?: string | null;
 }
 
 /**
