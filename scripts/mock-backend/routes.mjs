@@ -292,6 +292,7 @@ export const routes = new Map([
     () => {
       db.emailUnlinked = false;
       db.usedPromocodes = new Set();
+      db.promoDiscount = null;
       Object.assign(db.user, {
         telegram_id: 100000001,
         username: 'postq_tester',
@@ -463,10 +464,22 @@ export const routes = new Map([
     },
   ],
   [
+    // As the bot: drops the discount and rolls the code's use back.
+    'POST /cabinet/promocode/deactivate-discount',
+    () => {
+      const d = db.promoDiscount;
+      if (!d) return { __status: 400, body: { detail: { code: 'no_active_discount_promocode' } } };
+      db.promoDiscount = null;
+      const code = d.source.replace(/^promocode:/, '');
+      db.usedPromocodes?.delete(code);
+      return { success: true, deactivated_code: code, discount_percent: d.percent };
+    },
+  ],
+  [
     // Test codes (any case):
     //   POSTQ  — +100 ₽ on the balance (repeat → already used)
     //   DAYS   — +7 days; with 2+ subscriptions asks which one first
-    //   SALE   — a 15% discount on the next purchase
+    //   SALE   — 15% off the next subscription purchase, for 24 h
     //   OLD    — expired;  BUSY — another discount is already active
     //   anything else — not found
     'POST /cabinet/promocode/activate',
@@ -476,6 +489,8 @@ export const routes = new Map([
       db.usedPromocodes ??= new Set();
       if (code === 'OLD') return fail('expired', 'Promocode expired');
       if (code === 'BUSY') return fail('active_discount_exists', 'Discount already active');
+      if (code === 'SALE' && db.promoDiscount)
+        return fail('active_discount_exists', 'Discount already active');
       if (!['POSTQ', 'DAYS', 'SALE'].includes(code)) return fail('not_found', 'Not found');
       if (db.usedPromocodes.has(code)) return fail('already_used_by_user', 'Already used');
       if (code === 'DAYS') {
@@ -495,8 +510,19 @@ export const routes = new Map([
         return { success: true, message: 'ok', bonus_description: '+7 дней к подписке' };
       }
       db.usedPromocodes.add(code);
-      if (code === 'SALE')
-        return { success: true, message: 'ok', bonus_description: 'Скидка 15% на следующую покупку' };
+      if (code === 'SALE') {
+        // As the bot: percent on the user until the next purchase or 24 h.
+        db.promoDiscount = {
+          percent: 15,
+          source: 'promocode:SALE',
+          expires_at: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+        };
+        return {
+          success: true,
+          message: 'ok',
+          bonus_description: '💸 Получена скидка 15% (действует 24 ч.)',
+        };
+      }
       const before = rub(db.user.balance_kopeks);
       db.user.balance_kopeks += 10000;
       db.user.balance_rubles = rub(db.user.balance_kopeks);
@@ -755,7 +781,13 @@ export const routes = new Map([
   ['GET /cabinet/promo/offers', () => []],
   [
     'GET /cabinet/promo/active-discount',
-    () => ({ discount_percent: 0, source: null, expires_at: null, is_active: false }),
+    () => {
+      const d = db.promoDiscount;
+      const active = !!d && (!d.expires_at || Date.parse(d.expires_at) > Date.now());
+      return active
+        ? { discount_percent: d.percent, source: d.source, expires_at: d.expires_at, is_active: true }
+        : { discount_percent: 0, source: null, expires_at: null, is_active: false };
+    },
   ],
   [
     'GET /cabinet/promo/group-discounts',

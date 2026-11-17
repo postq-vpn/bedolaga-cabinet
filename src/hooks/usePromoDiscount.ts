@@ -62,6 +62,12 @@ export function combinePromoDiscount(
   return { price: finalPrice, original: priceKopeks, percent: activePercent, isPromoGroup: false };
 }
 
+/** `promocode:SALE` → `SALE`; other sources (promo offers, the wheel) have no code. */
+export function promoCodeFromSource(source: string | null | undefined): string | null {
+  const match = /^promocode:(.+)$/.exec(source ?? '');
+  return match ? match[1] : null;
+}
+
 export type ApplyPromoDiscount = (
   priceKopeks: number,
   existingOriginalPrice?: number | null,
@@ -82,5 +88,5 @@ export function usePromoDiscount() {
     [activePercent],
   );
 
-  return { activeDiscount, applyPromoDiscount };
+  return { activeDiscount, activePercent, applyPromoDiscount };
 }

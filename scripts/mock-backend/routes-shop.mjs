@@ -105,12 +105,18 @@ function priceOf(_tariffId, days, devices) {
   return { t, p, count, devicesCost, total: p.price_kopeks + devicesCost };
 }
 
+/** The promo code discount (`SALE`), taken off the whole sum as the bot does. */
+function promoOff(total) {
+  const d = db.promoDiscount;
+  if (!d || (d.expires_at && Date.parse(d.expires_at) <= Date.now())) return 0;
+  return Math.floor((total * d.percent) / 100);
+}
+
 function quote(body) {
-  const { t, p, count, devicesCost, total } = priceOf(
-    body.tariff_id,
-    body.period_days,
-    body.selected_device_limit,
-  );
+  const priced = priceOf(body.tariff_id, body.period_days, body.selected_device_limit);
+  const { t, p, count, devicesCost } = priced;
+  const off = promoOff(priced.total);
+  const total = priced.total - off;
   return {
     quote_id: `q-${Date.now()}`,
     expires_at: inDays(1 / 24),
@@ -126,7 +132,7 @@ function quote(body) {
     tariff_cost_kopeks: p.price_kopeks,
     devices_cost_kopeks: devicesCost,
     traffic_cost_kopeks: 0,
-    discount_kopeks: p.discount_amount_kopeks ?? 0,
+    discount_kopeks: (p.discount_amount_kopeks ?? 0) + off,
     total_kopeks: total,
     balance_kopeks: db.user.balance_kopeks,
     missing_kopeks: Math.max(0, total - db.user.balance_kopeks),
@@ -413,11 +419,9 @@ export const shopRoutes = [
   [
     'POST /cabinet/subscription/purchase-tariff',
     ({ body }) => {
-      const { t, p, count, total } = priceOf(
-        body.tariff_id,
-        body.period_days,
-        body.selected_device_limit,
-      );
+      const priced = priceOf(body.tariff_id, body.period_days, body.selected_device_limit);
+      const { t, p, count } = priced;
+      const total = priced.total - promoOff(priced.total);
       if (db.user.balance_kopeks < total) {
         return {
           __status: 400,
@@ -432,6 +436,8 @@ export const shopRoutes = [
       }
       db.user.balance_kopeks -= total;
       db.user.balance_rubles = rub(db.user.balance_kopeks);
+      // One-shot: the purchase uses the discount up.
+      db.promoDiscount = null;
       const s = ensureSubscription();
       const base = Math.max(Date.now(), new Date(s.end_date).getTime());
       // A purchase converts the trial, as the bot does (is_trial = False).

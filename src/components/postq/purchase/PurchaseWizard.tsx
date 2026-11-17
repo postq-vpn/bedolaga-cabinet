@@ -15,7 +15,10 @@ import type { Tariff, TariffPeriod } from '@/types';
 import { RdIcon } from '../RdIcon';
 import { DevicesDialog } from '../dashboard/DevicesDialog';
 import { TopUpDialog } from '../payment/TopUpDialog';
+import { promoCodeFromSource, usePromoDiscount } from '@/hooks/usePromoDiscount';
+import { PromoCodeField } from '../PromoCodeField';
 import { savePendingPurchase } from './pendingPurchase';
+import { checkoutPrice } from './promoPrice';
 import { useBackHandler } from '../backOverride';
 import {
   ConfirmRow,
@@ -77,9 +80,22 @@ export function PurchaseWizard({
   );
   const [devices, setDevices] = useState<number | undefined>();
   const days = period?.days ?? 30;
+  // A promo code discount the server takes off at checkout. The quote has it
+  // already; the period prices don't, so the tiles lay it on themselves.
+  const { activeDiscount, activePercent, applyPromoDiscount } = usePromoDiscount();
+  const [promoOpen, setPromoOpen] = useState(false);
 
   const quoteQuery = useQuery({
-    queryKey: ['tariff-device-quote', userId, tariff.id, subscriptionId, days, undefined, devices],
+    queryKey: [
+      'tariff-device-quote',
+      userId,
+      tariff.id,
+      subscriptionId,
+      days,
+      undefined,
+      devices,
+      activePercent,
+    ],
     queryFn: () =>
       subscriptionApi.previewTariffPurchase({
         tariff_id: tariff.id,
@@ -126,11 +142,10 @@ export function PurchaseWizard({
   });
 
   // Totals: the quote once it's here, the period's own prices before that.
-  const total = quote?.total_kopeks ?? period?.price_kopeks ?? 0;
-  const discount = quote?.discount_kopeks ?? period?.discount_amount_kopeks ?? 0;
-  const original = discount > 0 ? total + discount : null;
-  const discountPercent =
-    period?.discount_percent ?? (original ? Math.round((discount / original) * 100) : 0);
+  // The promo code discount is split out so it shows as its own line.
+  const price = checkoutPrice(quote, period, activePercent);
+  const { total, discount, original, discountPercent } = price;
+  const promoCode = promoCodeFromSource(activeDiscount?.source);
   const missing =
     quote && !quoteFailed
       ? quote.missing_kopeks
@@ -442,26 +457,33 @@ export function PurchaseWizard({
     <div className="flex flex-col gap-8">
       <WizardNav step={step} total={3} />
       <WizardProgress titles={stepTitles} step={step} onStep={(n) => setStep(n as Step)} />
-      <WizardHeading title={headings[step][0]} text={headings[step][1]} />
+      <WizardHeading
+        title={headings[step][0]}
+        text={headings[step][1]}
+        eyebrow={t('postq.purchase.stepOf', { step, total: 3 })}
+      />
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         <section className="rd-card rd-card--lg flex min-w-0 flex-1 flex-col gap-6">
           {step === 1 && (
             <>
               <div role="radiogroup" className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
-                {tariff.periods.map((p) => (
-                  <PeriodTile
-                    key={p.days}
-                    label={p.label}
-                    priceKopeks={p.price_kopeks}
-                    originalKopeks={p.original_price_kopeks}
-                    discountPercent={p.discount_percent}
-                    selected={p.days === period?.days}
-                    onSelect={() => setPeriod(p)}
-                    money={money}
-                    moneyShort={moneyShort}
-                  />
-                ))}
+                {tariff.periods.map((p) => {
+                  const priced = applyPromoDiscount(p.price_kopeks, p.original_price_kopeks);
+                  return (
+                    <PeriodTile
+                      key={p.days}
+                      label={p.label}
+                      priceKopeks={priced.price}
+                      originalKopeks={priced.original}
+                      discountPercent={priced.percent}
+                      selected={p.days === period?.days}
+                      onSelect={() => setPeriod(p)}
+                      money={money}
+                      moneyShort={moneyShort}
+                    />
+                  );
+                })}
               </div>
               <p className="rd-p-md text-[var(--rd-caption)]">
                 {t('postq.purchase.devicesNote', { count: included })}
@@ -587,15 +609,29 @@ export function PurchaseWizard({
                     <dd className="font-medium text-[var(--rd-heading)]">{money(original)}</dd>
                   </div>
                 )}
-                {discount > 0 && (
+                {price.groupDiscount > 0 && (
                   <div className="flex justify-between gap-4">
                     <dt className="text-[var(--rd-caption)]">
                       {t('postq.purchase.discountFor', {
                         period: period?.label,
-                        percent: discountPercent,
+                        percent: price.groupPercent,
                       })}
                     </dt>
-                    <dd className="font-medium text-[var(--rd-heading)]">−{money(discount)}</dd>
+                    <dd className="font-medium text-[var(--rd-heading)]">
+                      −{money(price.groupDiscount)}
+                    </dd>
+                  </div>
+                )}
+                {price.promoDiscount > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-[var(--rd-caption)]">
+                      {promoCode
+                        ? t('postq.promo.line', { code: promoCode, percent: price.promoPercent })
+                        : t('postq.promo.lineNoCode', { percent: price.promoPercent })}
+                    </dt>
+                    <dd className="font-medium text-[var(--rd-heading)]">
+                      −{money(price.promoDiscount)}
+                    </dd>
                   </div>
                 )}
                 <div className="flex justify-between gap-4">
@@ -614,6 +650,19 @@ export function PurchaseWizard({
                   </div>
                 )}
               </dl>
+              {/* A code entered here lands on this price right away: the
+                  quote refetches once it's activated. */}
+              {promoOpen || activePercent > 0 ? (
+                <PromoCodeField autoFocus={promoOpen && activePercent === 0} />
+              ) : (
+                <button
+                  type="button"
+                  className="rd-p-md rd-link-action self-start"
+                  onClick={() => setPromoOpen(true)}
+                >
+                  {t('postq.promo.have')}
+                </button>
+              )}
               {sbpOffered && sbpPeriods.length > 0 && (
                 <>
                   <div className="h-px w-full bg-[var(--rd-border)]" />
@@ -664,6 +713,11 @@ export function PurchaseWizard({
                         ) : (
                           t('postq.sbp.payHintNoPrice')
                         )}
+                        {/* The bot charges SBP at the plain price: a promo
+                            discount isn't frozen into a recurring charge. */}
+                        {sbpPeriodOk &&
+                          price.promoDiscount > 0 &&
+                          ` · ${t('postq.promo.notForSbp')}`}
                       </span>
                     </div>
                     {sbpPeriodOk ? (

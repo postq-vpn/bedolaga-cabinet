@@ -19,11 +19,16 @@ interface BackOverrideState {
   handler: Handler | null;
   push: (handler: Handler) => void;
   remove: (handler: Handler) => void;
+  /** Screens drawing «Назад» inside their own layout (useInlineBack). */
+  inlineHosts: number;
+  setInline: (delta: 1 | -1) => void;
 }
 
 export const useBackOverride = create<BackOverrideState>((set) => ({
   stack: [],
   handler: null,
+  inlineHosts: 0,
+  setInline: (delta) => set((s) => ({ inlineHosts: Math.max(0, s.inlineHosts + delta) })),
   push: (handler) =>
     set((s) => {
       const stack = [...s.stack, handler];
@@ -48,4 +53,16 @@ export function useBackHandler(enabled: boolean, onBack: () => void): void {
     push(handler);
     return () => remove(handler);
   }, [enabled, push, remove]);
+}
+
+/**
+ * The screen puts «Назад» into its own layout (the purchase wizard's step
+ * row), so the desktop shell doesn't draw its copy by the page title.
+ */
+export function useInlineBack(): void {
+  const setInline = useBackOverride((s) => s.setInline);
+  useEffect(() => {
+    setInline(1);
+    return () => setInline(-1);
+  }, [setInline]);
 }

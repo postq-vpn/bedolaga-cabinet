@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { PiCreditCardFill, PiCurrencyBtcFill } from 'react-icons/pi';
 import { balanceApi } from '@/api/balance';
 import { useCurrency } from '@/hooks/useCurrency';
-import { usePromocode } from '@/hooks/usePromocode';
-import { cn } from '@/lib/utils';
+import { PromoCodeField } from '../PromoCodeField';
 import { RdIcon } from '../RdIcon';
 import { SUPPORT_BOT_URL } from '../links';
 
@@ -13,7 +12,6 @@ import { SUPPORT_BOT_URL } from '../links';
 export function PaymentSidebar() {
   const { t } = useTranslation();
   const { formatAmount, currencySymbol } = useCurrency();
-  const promo = usePromocode();
   const { data: balance } = useQuery({
     queryKey: ['balance'],
     queryFn: balanceApi.getBalance,
@@ -37,86 +35,7 @@ export function PaymentSidebar() {
               : `${formatAmount(rubles, Number.isInteger(rubles) ? 0 : 2)}\u00A0${currencySymbol}`}
           </span>
         </div>
-        <div className="flex flex-col gap-3">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void promo.activate();
-            }}
-          >
-            <div className={cn('rd-field', (promo.code.trim() || promo.loading) && '!pr-2')}>
-              <input
-                id="postq-promo"
-                aria-label={t('postq.payment.promoTitle')}
-                className="min-w-0"
-                value={promo.code}
-                onChange={(e) => promo.setCode(e.target.value)}
-                placeholder={t('postq.payment.promoPlaceholder')}
-                disabled={promo.loading}
-                autoComplete="off"
-              />
-              {/* Shown once there is a code: an empty field keeps the whole
-                  placeholder readable. */}
-              {(promo.code.trim() || promo.loading) && (
-                <button
-                  type="submit"
-                  disabled={promo.loading}
-                  className="rd-p-md h-10 shrink-0 rounded-[12px] bg-[var(--rd-action-soft)] px-4 font-medium text-[var(--rd-on-soft)] transition-colors hover:bg-[var(--rd-action-soft-hover)] disabled:opacity-50"
-                >
-                  {promo.loading ? t('common.loading') : t('postq.payment.promoActivate')}
-                </button>
-              )}
-            </div>
-          </form>
-          {promo.error && (
-            <p role="alert" className="rd-p-sm text-[var(--rd-error-text)]">
-              {promo.error}
-            </p>
-          )}
-          {promo.success && (
-            <div className="rd-p-md rounded-[var(--rd-radius-sm)] bg-[var(--rd-success-bg)] px-4 py-3 text-[var(--rd-success-text)]">
-              <div>{promo.success.message}</div>
-              {promo.success.amount > 0 && (
-                <div className="rd-p-sm mt-1">
-                  {t('balance.promocode.balanceAdded', {
-                    amount: formatAmount(
-                      promo.success.amount,
-                      Number.isInteger(promo.success.amount) ? 0 : 2,
-                    ),
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-          {promo.choices && promo.choices.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <p className="rd-p-sm text-[var(--rd-caption)]">
-                {t('balance.promocode.selectSubscription', 'К какой подписке применить промокод?')}
-              </p>
-              {promo.choices.map((sub) => (
-                <button
-                  key={sub.id}
-                  type="button"
-                  onClick={() => void promo.activate(sub.id)}
-                  disabled={promo.loading}
-                  className="rd-p-md flex items-center justify-between gap-3 rounded-[var(--rd-radius-sm)] bg-[var(--rd-field)] px-4 py-3 text-left text-[var(--rd-heading)] hover:bg-[var(--rd-chip-hover)]"
-                >
-                  <span className="truncate">{sub.tariff_name}</span>
-                  <span className="rd-p-sm shrink-0 text-[var(--rd-caption)]">
-                    {t('balance.promocode.daysLeft', '{{count}} дн.', { count: sub.days_left })}
-                  </span>
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={promo.cancelChoice}
-                className="rd-p-sm rd-link self-start"
-              >
-                {t('common.cancel', 'Отмена')}
-              </button>
-            </div>
-          )}
-        </div>
+        <PromoCodeField />
       </section>
 
       <section className="order-5 flex flex-col gap-3 lg:order-none rounded-[var(--rd-radius-md)] border border-[var(--rd-border)] bg-[var(--rd-chip)] p-6">

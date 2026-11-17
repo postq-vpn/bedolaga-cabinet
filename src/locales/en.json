@@ -10375,11 +10375,11 @@
       "confirmDisable": "The subscription will stop renewing by itself. You can turn it back on any time.",
       "disabled": "SBP auto-debit disabled",
       "payButton": "Pay via SBP with auto-renewal",
-      "payHintNoPrice": "First charge now, then automatically. You can turn it off any time.",
+      "payHintNoPrice": "Now and then automatically from your bank account",
       "activeText": "On",
       "offerTitle": "With auto-renewal via SBP",
-      "payHintMonth": "We charge {{amount}} to your bank account now and every month after. The balance isn't used; turn it off any time",
-      "payHintYear": "We charge {{amount}} to your bank account now and once a year after. The balance isn't used; turn it off any time",
+      "payHintMonth": "Monthly from your bank account",
+      "payHintYear": "Yearly from your bank account",
       "payButtonAmount": "Pay {{amount}} via SBP",
       "availableFor": "Available for",
       "or": "or",
@@ -10428,6 +10428,18 @@
       "title": "Auto-renewal from balance",
       "caption_one": "Charged to your balance {{count}} day before expiry",
       "caption_other": "Charged to your balance {{count}} days before expiry"
+    },
+    "promo": {
+      "untilDate": "until {{date}}",
+      "untilPurchase": "until your next purchase",
+      "line": "Promo code {{code}} −{{percent}}%",
+      "lineNoCode": "Promo code discount −{{percent}}%",
+      "have": "Have a promo code?",
+      "notForSbp": "promo code discount not applied",
+      "appliedTerms": "−{{percent}}% on a subscription {{until}}",
+      "offerChip": "{{percent}}% off",
+      "offerTerms": "on a subscription {{until}}",
+      "remove": "Remove promo code {{code}}"
     }
   }
 }

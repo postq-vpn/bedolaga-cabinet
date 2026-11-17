@@ -658,7 +658,7 @@ export default function GiftSubscription() {
             className={cn(
               'rd-p-md h-11 min-w-0 flex-1 basis-0 whitespace-nowrap rounded-[12px] px-2 transition-colors',
               activeTab === tab.id
-                ? 'bg-[var(--rd-help)] font-medium text-[var(--rd-action)]'
+                ? 'bg-[var(--rd-field)] font-medium text-[var(--rd-heading)]'
                 : 'text-[var(--rd-caption)] hover:text-[var(--rd-heading)]',
             )}
           >

@@ -27,7 +27,7 @@ vi.mock('@/hooks/useCurrency', () => ({
   useCurrency: () => ({ formatAmount: String, currencySymbol: 'RUB' }),
 }));
 vi.mock('@/platform', () => ({
-  usePlatform: () => ({ platform: 'web', openLink: vi.fn() }),
+  usePlatform: () => ({ platform: 'web', openLink: vi.fn(), capabilities: {} }),
 }));
 vi.mock('@/components/Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 vi.mock('@/utils/openPaymentUrl', () => ({ openPaymentUrl: api.open }));

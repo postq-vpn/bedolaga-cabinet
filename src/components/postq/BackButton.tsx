@@ -26,7 +26,7 @@ export function useShowBackButton(): boolean {
  * back in the app's history, or — opened straight on a nested page (link,
  * reload) — to its parent.
  */
-export function BackButton({ variant }: { variant: 'mobile' | 'desktop' }) {
+export function BackButton({ variant }: { variant: 'mobile' | 'desktop' | 'inline' }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -38,6 +38,21 @@ export function BackButton({ variant }: { variant: 'mobile' | 'desktop' }) {
     if (location.key !== 'default') navigate(-1);
     else navigate(getFallbackParentPath(location.pathname), { replace: true });
   };
+
+  // Inside a page's own layout (the wizard's step row): a quiet text link,
+  // only its colour answers the pointer.
+  if (variant === 'inline') {
+    return (
+      <button
+        type="button"
+        onClick={goBack}
+        className="rd-p-md -ml-1 flex items-center gap-1 font-medium text-[var(--rd-caption)] transition-colors hover:text-[var(--rd-heading)]"
+      >
+        <RdIcon name="cabinet/chevron-up" size={18} className="-rotate-90" />
+        {t('common.back')}
+      </button>
+    );
+  }
 
   return (
     <button

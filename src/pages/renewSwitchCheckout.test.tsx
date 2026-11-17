@@ -24,8 +24,12 @@ vi.mock('../hooks/useCurrency', () => ({
 }));
 vi.mock('../hooks/useTheme', () => ({ useTheme: () => ({ isDark: true }) }));
 vi.mock('../hooks/useLiteMode', () => ({ useLiteMode: () => ({ lite: state.lite }) }));
-vi.mock('../hooks/usePromoDiscount', () => ({
-  usePromoDiscount: () => ({ applyPromoDiscount: (price: number) => ({ price }) }),
+vi.mock('../hooks/usePromoDiscount', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../hooks/usePromoDiscount')>()),
+  usePromoDiscount: () => ({
+    activePercent: 0,
+    applyPromoDiscount: (price: number) => ({ price }),
+  }),
 }));
 vi.mock('../api/subscription', () => ({
   subscriptionApi: {

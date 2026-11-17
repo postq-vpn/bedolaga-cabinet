@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { RdIcon } from '../RdIcon';
+import { BackButton, useShowBackButton } from '../BackButton';
+import { useInlineBack } from '../backOverride';
 
 /**
  * Pieces shared by the step-by-step checkouts (subscription purchase and the
@@ -10,15 +12,31 @@ import { RdIcon } from '../RdIcon';
  */
 
 /**
- * «Шаг 2 из 3». Going back a step — and out of the flow on the first one — is
- * the cabinet's one «Назад» (components/postq/BackButton, via useBackHandler).
+ * «‹ Назад» and «Шаг 2 из 3» in one row above the progress bars. Going back a
+ * step — and out of the flow on the first one — is the cabinet's one «Назад»
+ * (backOverride, via useBackHandler); on desktop it lives here instead of by
+ * the page title, where it hung beside the progress bars. Phones keep it in
+ * the header, Telegram in its native button.
  */
 export function WizardNav({ step, total }: { step: number; total: number }) {
   const { t } = useTranslation();
+  const showBack = useShowBackButton();
+  useInlineBack();
   return (
-    <p className="rd-p-md text-right font-medium text-[var(--rd-caption)]">
-      {t('postq.purchase.stepOf', { step, total })}
-    </p>
+    // Phones: no row of its own (it pushed the title far from the header);
+    // the step goes above the title instead (WizardHeading `eyebrow`).
+    <div className="hidden min-h-6 items-center justify-between gap-4 lg:flex">
+      {showBack ? (
+        <span className="flex">
+          <BackButton variant="inline" />
+        </span>
+      ) : (
+        <span />
+      )}
+      <p className="rd-p-md ml-auto font-medium text-[var(--rd-caption)]">
+        {t('postq.purchase.stepOf', { step, total })}
+      </p>
+    </div>
   );
 }
 
@@ -95,15 +113,21 @@ export function WizardProgress({
 export function WizardHeading({
   title,
   text,
+  eyebrow,
   as: Tag = 'h1',
 }: {
   title: string;
   text: string;
+  /** «Шаг 2 из 3» above the title on phones, where WizardNav is hidden. */
+  eyebrow?: string;
   /** h2 when the page already has its own title (the gift page). */
   as?: 'h1' | 'h2';
 }) {
   return (
-    <div className="flex flex-col gap-3 pt-3">
+    <div className={cn('flex flex-col gap-3', eyebrow ? 'lg:pt-3' : 'pt-3')}>
+      {eyebrow && (
+        <p className="rd-p-md -mb-1 font-medium text-[var(--rd-caption)] lg:hidden">{eyebrow}</p>
+      )}
       <Tag className={cn(Tag === 'h1' ? 'rd-h3' : 'rd-h4', 'text-[var(--rd-heading)]')}>
         {title}
       </Tag>
@@ -114,7 +138,8 @@ export function WizardHeading({
 
 /**
  * The «Срок подписки» tile: a compact row on phones (period and discount on
- * the left, price on the right), a tall card with a radio from tablets up.
+ * the left, price on the right), a tall card from tablets up. The selection is
+ * the tile itself (border and tint) — no radio dot.
  */
 export function PeriodTile({
   label,
@@ -144,7 +169,7 @@ export function PeriodTile({
       aria-checked={selected}
       onClick={onSelect}
       className={cn(
-        'flex h-16 items-center rounded-[var(--rd-radius-md)] border-2 px-4 text-left transition-colors sm:h-[180px] sm:items-stretch sm:p-6',
+        'flex h-[72px] items-center rounded-[var(--rd-radius-md)] border-2 px-4 text-left transition-colors sm:h-[180px] sm:items-stretch sm:p-6',
         selected
           ? 'border-[var(--rd-action)] bg-[var(--rd-help)]'
           : 'border-transparent bg-[var(--rd-field)] hover:bg-[var(--rd-chip-hover)]',
@@ -179,15 +204,6 @@ export function PeriodTile({
       <span className="hidden w-full flex-col justify-between sm:flex">
         <span className="flex w-full items-center justify-between gap-3">
           <span className="rd-h6 text-[var(--rd-heading)]">{label}</span>
-          <span
-            aria-hidden
-            className={cn(
-              'shrink-0 rounded-full bg-[var(--rd-surface)]',
-              selected
-                ? 'size-5 border-[6px] border-[var(--rd-action)]'
-                : 'size-6 border-2 border-[var(--rd-border)]',
-            )}
-          />
         </span>
         <span className="flex w-full items-end justify-between gap-3">
           <span className="flex flex-col gap-2">
@@ -202,8 +218,9 @@ export function PeriodTile({
             <span
               className={cn(
                 'rd-p-md shrink-0 rounded-[12px] px-3 py-2 font-medium',
+                // On the selected (pink) tile a pink-on-pink badge got lost: solid there.
                 selected
-                  ? 'bg-[var(--rd-help)] text-[var(--rd-action)]'
+                  ? 'bg-[var(--rd-action)] text-[var(--rd-on-action)]'
                   : 'bg-[var(--rd-surface)] text-[var(--rd-body)]',
               )}
             >

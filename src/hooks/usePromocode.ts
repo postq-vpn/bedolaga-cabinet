@@ -1,7 +1,32 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
+import { type QueryClient, useQueryClient } from '@tanstack/react-query';
 import { balanceApi } from '../api/balance';
+import { type ActiveDiscount, promoApi } from '../api/promo';
+
+/**
+ * Everything a code can change: a discount code changes every price the server
+ * quotes, a balance code what's missing, a days code the subscription.
+ */
+export function invalidatePromoDependents(queryClient: QueryClient) {
+  for (const key of [
+    'balance',
+    'transactions',
+    'purchase-options',
+    'subscriptions-list',
+    'subscription',
+    'active-discount',
+    'tariff-device-quote',
+    'tariff-recurrent-quote',
+  ]) {
+    queryClient.invalidateQueries({ queryKey: [key] });
+  }
+}
+
+/** «💸 Получена скидка» → «Получена скидка». */
+export function stripLeadingEmoji(text: string) {
+  return text.replace(/^(?:\p{Extended_Pictographic}|️|‍|\s)+/u, '');
+}
 import { useAuthStore } from '../store/auth';
 
 export interface PromoSubscriptionChoice {
@@ -70,23 +95,30 @@ export function usePromocode({ onSuccess }: { onSuccess?: () => void } = {}) {
       }
 
       if (result.success) {
-        setSuccess({
-          message: result.bonus_description || t('balance.promocode.success'),
-          amount: (result.balance_after || 0) - (result.balance_before || 0),
-        });
+        // A discount code is shown by its applied chip (PromoCodeField):
+        // its own message would only repeat it.
+        const hadDiscount =
+          queryClient.getQueryData<ActiveDiscount>(['active-discount'])?.is_active ?? false;
+        const discount = await queryClient
+          .fetchQuery({ queryKey: ['active-discount'], queryFn: promoApi.getActiveDiscount })
+          .catch(() => undefined);
+        const newDiscount = !hadDiscount && !!discount?.is_active;
+        setSuccess(
+          newDiscount
+            ? null
+            : {
+                // The bot's texts start with an emoji; the cabinet doesn't use them.
+                message: stripLeadingEmoji(
+                  result.bonus_description || t('balance.promocode.success'),
+                ),
+                amount: (result.balance_after || 0) - (result.balance_before || 0),
+              },
+        );
         setCode('');
         reset();
         onSuccess?.();
         await refreshUser();
-        for (const key of [
-          'balance',
-          'transactions',
-          'purchase-options',
-          'subscriptions-list',
-          'subscription',
-        ]) {
-          queryClient.invalidateQueries({ queryKey: [key] });
-        }
+        invalidatePromoDependents(queryClient);
       }
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: { code?: string } | string } } })

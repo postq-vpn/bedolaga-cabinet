@@ -14,6 +14,7 @@ import { MobileHeader, MobileTabBar, isMobileTabScreen } from '@/components/post
 import { useChatFocus } from '@/components/postq/chatFocus';
 import { CabinetHeader } from '@/components/postq/CabinetHeader';
 import { BackButton, useShowBackButton } from '@/components/postq/BackButton';
+import { useBackOverride } from '@/components/postq/backOverride';
 import { usePendingPurchase } from '@/components/postq/purchase/usePendingPurchase';
 import { useBackgroundConsumer } from '@/components/backgrounds/BackgroundHost';
 
@@ -46,6 +47,8 @@ export function AppShell({ children }: AppShellProps) {
   const chatFocus = useChatFocus((st) => st.chatFocus);
   const showMobileNav = isMobileTabScreen(location.pathname) && !chatFocus;
   const showBack = useShowBackButton();
+  // A screen with «Назад» in its own layout (purchase wizard) draws it there.
+  const inlineBack = useBackOverride((s) => s.inlineHosts > 0);
 
   return (
     <div
@@ -86,7 +89,7 @@ export function AppShell({ children }: AppShellProps) {
             its first line (24px main padding + 60px rd-h3 line → top 30px).
             Narrower desktops have no margin for it: «‹ Назад» above the title.
             Phones keep it in the header, by the logo. */}
-        {showBack && (
+        {showBack && !inlineBack && (
           <div className="-ml-3 mb-4 hidden lg:flex min-[1600px]:ml-0 min-[1600px]:absolute min-[1600px]:right-[calc(100%-16px)] min-[1600px]:top-[30px] min-[1600px]:mb-0">
             <BackButton variant="desktop" />
           </div>

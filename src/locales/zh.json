@@ -10246,11 +10246,11 @@
       "confirmDisable": "订阅将不再自动续费。可随时重新开启。",
       "disabled": "SBP 自动扣款已关闭",
       "payButton": "通过 SBP 支付并自动续费",
-      "payHintNoPrice": "现在首次扣款,之后自动续费。可随时关闭。",
+      "payHintNoPrice": "现在及之后自动从银行账户扣款",
       "activeText": "已开通",
       "offerTitle": "通过 SBP 自动续费",
-      "payHintMonth": "现在从银行账户扣款 {{amount}},之后每月扣款。不使用余额,可随时关闭",
-      "payHintYear": "现在从银行账户扣款 {{amount}},之后每年扣款一次。不使用余额,可随时关闭",
+      "payHintMonth": "每月从银行账户扣款",
+      "payHintYear": "每年从银行账户扣款",
       "payButtonAmount": "通过 SBP 支付 {{amount}}",
       "availableFor": "适用于期限",
       "or": "或",
@@ -10298,6 +10298,18 @@
     "autopay": {
       "title": "从余额自动续费",
       "caption_other": "到期前 {{count}} 天从余额扣款"
+    },
+    "promo": {
+      "untilDate": "有效期至 {{date}}",
+      "untilPurchase": "下次购买前有效",
+      "line": "优惠码 {{code}} −{{percent}}%",
+      "lineNoCode": "优惠码折扣 −{{percent}}%",
+      "have": "有优惠码？",
+      "notForSbp": "不享受优惠码折扣",
+      "appliedTerms": "订阅立减 {{percent}}%，{{until}}",
+      "offerChip": "{{percent}}% 折扣",
+      "offerTerms": "适用于订阅，{{until}}",
+      "remove": "移除优惠码 {{code}}"
     }
   }
 }
