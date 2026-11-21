@@ -304,7 +304,15 @@
     "continueWithDiscord": "Continue with Discord",
     "continueWithVk": "Continue with VK",
     "oauthError": "Authorization was denied or failed",
-    "oauthExpired": "OAuth session expired. Please try again."
+    "oauthExpired": "OAuth session expired. Please try again.",
+    "resetLinkSentTo": "If an account exists, a password reset link is on its way to",
+    "legalAccept": "I accept the",
+    "legalAnd": "and",
+    "legalDocs": {
+      "public_offer": "Terms of Service",
+      "privacy_policy": "Privacy Policy"
+    },
+    "resetPasswordTitle": "Reset password"
   },
   "emailVerification": {
     "title": "Email Verification",
@@ -1234,7 +1242,7 @@
     "joined": "Joined",
     "hasPaid": "Has Paid",
     "status": {
-      "pending": "Pending",
+      "pending": "Not paid yet",
       "paid": "Paid"
     },
     "earningsHistory": "Earnings History",
@@ -1249,7 +1257,8 @@
       "referral_commission_topup": "Top-up commission",
       "referral_registration_reward": "Sign-up reward",
       "referral_days_reward": "Subscription days",
-      "referral_days_bonus": "Bonus days"
+      "referral_days_bonus": "Bonus days",
+      "referral_commission": "Purchase commission"
     },
     "disabled": "Referral program is currently disabled",
     "partner": {
@@ -1376,7 +1385,8 @@
       "saveError": "Could not save the setting",
       "kindMoneyHint": "The reward arrives as an amount on your balance",
       "kindDaysHint": "The reward extends your subscription"
-    }
+    },
+    "reasonGeneric": "Reward"
   },
   "support": {
     "title": "Support",

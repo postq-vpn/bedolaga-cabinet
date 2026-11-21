@@ -289,7 +289,7 @@ export default function Profile() {
                           {user.email}
                           {!user.email_verified && isEmailVerificationEnabled && (
                             <span className="text-[var(--rd-warn-icon)]">
-                              {' · '}
+                              {', '}
                               {t('profile.notVerified').toLowerCase()}
                             </span>
                           )}

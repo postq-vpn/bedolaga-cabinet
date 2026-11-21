@@ -293,7 +293,15 @@
     "continueWithDiscord": "通过 Discord 继续",
     "continueWithVk": "通过 VK 继续",
     "oauthError": "授权被拒绝或失败",
-    "oauthExpired": "OAuth 会话已过期。请重试。"
+    "oauthExpired": "OAuth 会话已过期。请重试。",
+    "resetLinkSentTo": "如果账户存在，重置密码的链接将发送至",
+    "legalAccept": "我接受",
+    "legalAnd": "和",
+    "legalDocs": {
+      "public_offer": "公开要约条款",
+      "privacy_policy": "隐私政策"
+    },
+    "resetPasswordTitle": "重置密码"
   },
   "emailVerification": {
     "title": "邮箱验证",
@@ -1201,7 +1209,8 @@
       "referral_commission_topup": "充值佣金",
       "referral_registration_reward": "注册奖励",
       "referral_days_reward": "订阅天数",
-      "referral_days_bonus": "赠送天数"
+      "referral_days_bonus": "赠送天数",
+      "referral_commission": "购买佣金"
     },
     "disabled": "推荐计划暂时停用",
     "partner": {
@@ -1328,7 +1337,8 @@
       "saveError": "设置保存失败",
       "kindMoneyHint": "奖励以金额计入余额",
       "kindDaysHint": "奖励延长您的订阅"
-    }
+    },
+    "reasonGeneric": "奖励"
   },
   "support": {
     "title": "支持",

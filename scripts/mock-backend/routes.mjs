@@ -159,6 +159,8 @@ export const routes = new Map([
   ['GET /cabinet/branding/lite-mode', () => ({ enabled: false })],
   ['GET /cabinet/branding/footer-enabled', () => ({ enabled: true })],
   ['GET /cabinet/branding/email-auth', () => ({ enabled: true, verification_enabled: false })],
+  // Как бот: ответ один и тот же, есть такой аккаунт или нет.
+  ['POST /cabinet/auth/password/forgot', () => ({ message: 'ok' })],
   ['GET /cabinet/branding/gift-enabled', () => ({ enabled: true })],
   ['GET /cabinet/branding/themes', () => ({ dark: true, light: true })],
   [
@@ -201,7 +203,7 @@ export const routes = new Map([
   ],
   [
     'GET /cabinet/info/legal-consent',
-    () => ({ required: false, prechecked: true, documents: ['offer', 'privacy'] }),
+    () => ({ required: false, prechecked: true, documents: ['public_offer', 'privacy_policy'] }),
   ],
   [
     'GET /cabinet/info/service',

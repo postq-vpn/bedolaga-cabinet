@@ -78,7 +78,8 @@ describe('TelegramRedirect: 428 «нужно согласие»', () => {
     await renderRedirect();
 
     const checkboxes = await screen.findAllByRole('checkbox', {}, { timeout: 3000 });
-    expect(checkboxes).toHaveLength(CONSENT_DOCUMENTS.length);
+    // Одна галочка на все документы.
+    expect(checkboxes).toHaveLength(1);
     for (const checkbox of checkboxes) fireEvent.click(checkbox);
 
     await act(async () => {

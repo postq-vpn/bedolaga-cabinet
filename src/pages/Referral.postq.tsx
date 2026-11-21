@@ -12,7 +12,14 @@ import { CampaignCard } from '../components/partner/CampaignCard';
 import { useCurrency } from '../hooks/useCurrency';
 import { StatCard } from '@/components/stats';
 import { PageSkeleton, Skeleton } from '@/components/ui/skeleton';
-import { BanknotesIcon, CalendarIcon, LinkIcon, ShareIcon, UsersIcon } from '@/components/icons';
+import { cn } from '@/lib/utils';
+import {
+  BanknotesIcon,
+  CalendarIcon,
+  LinkIcon,
+  ShareBoldIcon,
+  UsersIcon,
+} from '@/components/icons';
 
 /**
  * The rank line under the programme terms, or null when there is nothing to say.
@@ -638,9 +645,9 @@ export default function Referral() {
             type="button"
             onClick={shareLink}
             disabled={!referralLink}
-            className="rd-btn-soft shrink-0 gap-2 disabled:opacity-50"
+            className="rd-btn shrink-0 gap-2"
           >
-            <ShareIcon className="h-4 w-4" />
+            <ShareBoldIcon className="size-5" />
             {t('referral.shareButton')}
           </button>
         </div>
@@ -674,33 +681,38 @@ export default function Referral() {
       <div className="rd-card rd-card--lg">
         <h2 className="rd-h5 mb-6 text-[var(--rd-heading)]">{t('referral.yourReferrals')}</h2>
         {referralList?.items && referralList.items.length > 0 ? (
-          <div className="space-y-3">
-            {referralList.items.map((ref) => (
-              <div
+          <ul className="flex flex-col">
+            {referralList.items.map((ref, i) => (
+              <li
                 key={ref.id}
-                // Ник без пробелов выталкивал бейдж статуса за карточку.
-                className="flex items-center justify-between gap-3 rounded-[var(--rd-radius-sm)] border border-[var(--rd-border)] bg-[var(--rd-field)] p-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium text-[var(--rd-heading)] [overflow-wrap:anywhere]">
-                    {ref.first_name || ref.username || t('referral.anonymousUser', { id: ref.id })}
-                  </div>
-                  <div className="mt-1 text-xs text-[var(--rd-caption)]">
-                    {new Date(ref.created_at).toLocaleDateString(i18n.language)}
-                  </div>
-                </div>
-                {ref.has_paid ? (
-                  <span className="rd-p-md text-[var(--rd-success-text)] shrink-0">
-                    {t('referral.status.paid')}
-                  </span>
-                ) : (
-                  <span className="rd-p-md text-[var(--rd-caption)] shrink-0">
-                    {t('referral.status.pending')}
-                  </span>
+                // Ник без пробелов выталкивал статус за карточку.
+                className={cn(
+                  'flex items-center justify-between gap-4 py-4',
+                  i === 0 && 'pt-0',
+                  i < referralList.items.length - 1
+                    ? 'border-b border-[var(--rd-divider)]'
+                    : 'pb-0',
                 )}
-              </div>
+              >
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span className="rd-p-lg font-medium text-[var(--rd-heading)] [overflow-wrap:anywhere]">
+                    {ref.first_name || ref.username || t('referral.anonymousUser', { id: ref.id })}
+                  </span>
+                  <span className="rd-p-sm text-[var(--rd-caption)]">
+                    {new Date(ref.created_at).toLocaleDateString(i18n.language)}
+                  </span>
+                </div>
+                <span
+                  className={cn(
+                    'rd-p-md shrink-0',
+                    ref.has_paid ? 'text-[var(--rd-success-text)]' : 'text-[var(--rd-caption)]',
+                  )}
+                >
+                  {ref.has_paid ? t('referral.status.paid') : t('referral.status.pending')}
+                </span>
+              </li>
             ))}
-          </div>
+          </ul>
         ) : (
           <div className="py-12 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[var(--rd-radius-control)] bg-[var(--rd-field)]">
@@ -715,33 +727,42 @@ export default function Referral() {
       {earnings?.items && earnings.items.length > 0 && (
         <div className="rd-card rd-card--lg">
           <h2 className="rd-h5 mb-6 text-[var(--rd-heading)]">{t('referral.earningsHistory')}</h2>
-          <div className="space-y-3">
-            {earnings.items.map((earning) => (
-              <div
+          <ul className="flex flex-col">
+            {earnings.items.map((earning, i) => (
+              <li
                 key={earning.id}
                 // Начисление бывает длинным («+1 234,56 ₽ + 90 дн. «Тариф»»): оно
                 // занимает не больше половины строки и переносится, имя — остаток.
-                className="flex items-start justify-between gap-3 rounded-[var(--rd-radius-sm)] border border-[var(--rd-border)] bg-[var(--rd-field)] p-3"
+                className={cn(
+                  'flex items-start justify-between gap-4 py-4',
+                  i === 0 && 'pt-0',
+                  i < earnings.items.length - 1 ? 'border-b border-[var(--rd-divider)]' : 'pb-0',
+                )}
               >
-                <div className="min-w-0 flex-1">
-                  <div className="text-[var(--rd-heading)] [overflow-wrap:anywhere]">
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span className="rd-p-lg font-medium text-[var(--rd-heading)] [overflow-wrap:anywhere]">
                     {earning.referral_first_name ||
                       earning.referral_username ||
                       t('referral.anonymousReferral')}
-                  </div>
-                  <div className="mt-1 text-xs text-[var(--rd-caption)]">
-                    {t(`referral.reasons.${earning.reason}`, earning.reason)}
+                  </span>
+                  <span className="rd-p-sm text-[var(--rd-caption)]">
+                    {/* Неизвестный код бота — общим словом, а не «referral_xxx». */}
+                    {t(`referral.reasons.${earning.reason}`, t('referral.reasonGeneric'))}
                     {(earning.level ?? 1) > 1 &&
-                      ` • ${t('referral.levelBadge', { count: earning.level ?? 1 })}`}{' '}
-                    • {new Date(earning.created_at).toLocaleDateString(i18n.language)}
-                  </div>
+                      `, ${t('referral.levelBadge', { count: earning.level ?? 1 }).toLowerCase()}`}
+                  </span>
                 </div>
-                <div className="min-w-0 max-w-[55%] text-right font-semibold text-[var(--rd-success-text)]">
-                  {formatEarning(earning)}
+                <div className="flex min-w-0 max-w-[55%] flex-col items-end gap-1 text-right">
+                  <span className="rd-p-lg font-medium text-[var(--rd-success-text)]">
+                    {formatEarning(earning)}
+                  </span>
+                  <span className="rd-p-sm text-[var(--rd-caption)]">
+                    {new Date(earning.created_at).toLocaleDateString(i18n.language)}
+                  </span>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
 

@@ -22,6 +22,7 @@ const ALLOWED = new Set([
   'components/marketing/PaymentIcons.tsx', // марки платёжных брендов витрины
   'components/marketing/icons.tsx', // иконки шапки/подвала — точный порт postq-site
   'components/postq/ThemeToggle.tsx', // солнце/луна с анимацией формы — точный порт postq-site
+  'components/postq/TabIcon.tsx', // контур/заливка разделов нижней панели — порт XKeenPQ-UI
   'components/ProviderIcon.tsx',
   'components/TelegramLoginButton.tsx',
   'pages/TelegramRedirect.tsx', // логотип Telegram

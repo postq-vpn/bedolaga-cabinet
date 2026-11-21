@@ -441,8 +441,7 @@ export default function AdminTickets() {
                     <span className="rd-p-sm flex w-full items-center justify-between gap-3 text-[var(--rd-placeholder)]">
                       <span className="min-w-0 truncate">
                         <span className={active ? 'text-[var(--rd-action)]' : ''}>№ {tk.id}</span>
-                        {' · '}
-                        {formatUser(tk)}
+                        <span className="ml-2">{formatUser(tk)}</span>
                       </span>
                       <span className="shrink-0">{shortDate(tk.updated_at)}</span>
                     </span>
@@ -538,7 +537,6 @@ export default function AdminTickets() {
                   </h2>
                   <div className="rd-p-sm flex flex-wrap items-center gap-x-2 gap-y-1 text-[var(--rd-placeholder)]">
                     <span>№ {ticket.id}</span>
-                    <span>·</span>
                     {ticket.user ? (
                       <Link
                         to={`/admin/users/${ticket.user.id}`}
@@ -564,7 +562,7 @@ export default function AdminTickets() {
                     )}
                     {!listHidden && (
                       <span>
-                        · {t('admin.tickets.created')} {dayLabel(ticket.created_at)}
+                        {t('admin.tickets.created')} {dayLabel(ticket.created_at)}
                       </span>
                     )}
                   </div>
@@ -634,7 +632,7 @@ export default function AdminTickets() {
                             translateError={t('support.imageLoadFailed')}
                           />
                           <span className="rd-p-sm self-end text-[var(--rd-caption)]">
-                            {mine ? `${t('admin.tickets.adminLabel')} · ` : ''}
+                            {mine ? `${t('admin.tickets.adminLabel')}, ` : ''}
                             {timeLabel(msg.created_at)}
                           </span>
                         </div>

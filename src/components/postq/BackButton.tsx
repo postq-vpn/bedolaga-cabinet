@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
 import { cn } from '@/lib/utils';
@@ -21,6 +22,49 @@ export function useShowBackButton(): boolean {
 }
 
 /**
+ * One step back: the screen's own step-back when it set one (backOverride);
+ * otherwise back in the app's history, or — opened straight on a nested page
+ * (link, reload) — to its parent.
+ */
+function useGoBack(): () => void {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const override = useBackOverride((s) => s.handler);
+  return () => {
+    if (override) return override();
+    // React Router gives the entry page the key "default": no in-app history.
+    if (location.key !== 'default') navigate(-1);
+    else navigate(getFallbackParentPath(location.pathname), { replace: true });
+  };
+}
+
+/**
+ * Telegram's own Back button (top-left, instead of «Закрыть») on the same
+ * screens where the web shows ours: every nested page and a menu screen with
+ * an inner step. Without it Telegram only offered to close the app.
+ */
+export function useTelegramBackButton() {
+  const { pathname } = useLocation();
+  const { capabilities, backButton } = usePlatform();
+  const hasOverride = useBackOverride((s) => s.handler !== null);
+  const goBack = useGoBack();
+  const goBackRef = useRef(goBack);
+  goBackRef.current = goBack;
+  const visible = capabilities.hasBackButton && (hasOverride || !isMobileTabScreen(pathname));
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname — новости и инфо-страницы прячут кнопку при уходе, показываем снова на новом экране.
+  useEffect(() => {
+    if (!visible) {
+      backButton.hide();
+      return;
+    }
+    backButton.show(() => goBackRef.current());
+  }, [visible, pathname, backButton]);
+
+  useEffect(() => () => backButton.hide(), [backButton]);
+}
+
+/**
  * The cabinet's only «Назад» on the web: a chevron in a pill next to the logo.
  * Runs the screen's step-back when it set one (backOverride); otherwise goes
  * back in the app's history, or — opened straight on a nested page (link,
@@ -28,16 +72,7 @@ export function useShowBackButton(): boolean {
  */
 export function BackButton({ variant }: { variant: 'mobile' | 'desktop' | 'inline' }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const override = useBackOverride((s) => s.handler);
-
-  const goBack = () => {
-    if (override) return override();
-    // React Router gives the entry page the key "default": no in-app history.
-    if (location.key !== 'default') navigate(-1);
-    else navigate(getFallbackParentPath(location.pathname), { replace: true });
-  };
+  const goBack = useGoBack();
 
   // Inside a page's own layout (the wizard's step row): a quiet text link,
   // only its colour answers the pointer.

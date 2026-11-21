@@ -6,7 +6,13 @@ const partner = {
   status: process.env.MOCK_PARTNER || 'none',
   application:
     process.env.MOCK_PARTNER === 'rejected'
-      ? { id: 1, status: 'rejected', admin_comment: 'Нужна ссылка на канал с аудиторией от 1000 человек.', created_at: new Date().toISOString(), processed_at: null }
+      ? {
+          id: 1,
+          status: 'rejected',
+          admin_comment: 'Нужна ссылка на канал с аудиторией от 1000 человек.',
+          created_at: new Date().toISOString(),
+          processed_at: null,
+        }
       : null,
 };
 
@@ -363,7 +369,10 @@ const sbpRoutes = [
     },
   ],
   // Fake bank page, opened through the Vite proxy (/api/mock-sbp/… → /mock-sbp/…).
-  ['GET /mock-sbp/:id', ({ params }) => ({ __html: sbpPage(params.id, sbpBindings.get(Number(params.id))) })],
+  [
+    'GET /mock-sbp/:id',
+    ({ params }) => ({ __html: sbpPage(params.id, sbpBindings.get(Number(params.id))) }),
+  ],
   [
     'GET /mock-sbp/:id/:action',
     ({ params }) => {
@@ -629,10 +638,79 @@ export const shopRoutes = [
   ],
 
   // ─── Referral lists, misc lists ──────────────────────────────────────────
-  ['GET /cabinet/referral/list', () => ({ items: [], total: 0, page: 1, per_page: 10, pages: 1 })],
+  // Четверо приглашённых, как в GET /cabinet/referral (total 4, active 2).
+  [
+    'GET /cabinet/referral/list',
+    () => {
+      const ago = (d) => new Date(Date.now() - d * 86_400_000).toISOString();
+      const items = [
+        {
+          id: 101,
+          username: 'anna_p',
+          first_name: 'Анна',
+          created_at: ago(2),
+          has_subscription: true,
+          has_paid: true,
+        },
+        {
+          id: 102,
+          username: null,
+          first_name: 'Дмитрий',
+          created_at: ago(9),
+          has_subscription: true,
+          has_paid: true,
+        },
+        {
+          id: 103,
+          username: 'max_k',
+          first_name: 'Максим',
+          created_at: ago(17),
+          has_subscription: false,
+          has_paid: false,
+        },
+        {
+          id: 104,
+          username: null,
+          first_name: null,
+          created_at: ago(40),
+          has_subscription: false,
+          has_paid: false,
+        },
+      ];
+      return { items, total: items.length, page: 1, per_page: 10, pages: 1 };
+    },
+  ],
   [
     'GET /cabinet/referral/earnings',
-    () => ({ items: [], total: 0, page: 1, per_page: 10, pages: 1 }),
+    () => {
+      const ago = (d) => new Date(Date.now() - d * 86_400_000).toISOString();
+      const row = (id, kopeks, name, username, d) => ({
+        id,
+        amount_kopeks: kopeks,
+        amount_rubles: kopeks / 100,
+        reason: 'referral_commission',
+        reward_type: 'money',
+        referral_username: username,
+        referral_first_name: name,
+        campaign_name: null,
+        created_at: ago(d),
+      });
+      const items = [
+        row(1, 4485, 'Анна', 'anna_p', 1),
+        row(2, 4485, 'Дмитрий', null, 8),
+        row(3, 5000, 'Анна', 'anna_p', 2),
+      ];
+      const total = items.reduce((sum, i) => sum + i.amount_kopeks, 0);
+      return {
+        items,
+        total: items.length,
+        page: 1,
+        per_page: 10,
+        pages: 1,
+        total_amount_kopeks: total,
+        total_amount_rubles: total / 100,
+      };
+    },
   ],
   [
     'GET /cabinet/referral/partner/status',
@@ -648,7 +726,14 @@ export const shopRoutes = [
     'POST /cabinet/referral/partner/apply',
     ({ body }) => {
       partner.status = 'pending';
-      partner.application = { id: 1, status: 'pending', ...body, admin_comment: null, created_at: new Date().toISOString(), processed_at: null };
+      partner.application = {
+        id: 1,
+        status: 'pending',
+        ...body,
+        admin_comment: null,
+        created_at: new Date().toISOString(),
+        processed_at: null,
+      };
       return partner.application;
     },
   ],

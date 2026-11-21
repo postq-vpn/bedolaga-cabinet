@@ -73,8 +73,9 @@ describe('TelegramCallback: 428 «нужно согласие»', () => {
     await renderCallback();
 
     const checkboxes = await screen.findAllByRole('checkbox');
-    expect(checkboxes).toHaveLength(CONSENT_DOCUMENTS.length);
-    expect(screen.getByText('Публичная оферта')).toBeTruthy();
+    // Одна галочка на все документы.
+    expect(checkboxes).toHaveLength(1);
+    expect(screen.getByText('условия оферты')).toBeTruthy();
 
     const submit = screen.getByRole('button', { name: 'Продолжить' });
     expect((submit as HTMLButtonElement).disabled).toBe(true);

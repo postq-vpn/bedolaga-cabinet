@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router';
@@ -13,11 +14,38 @@ import { BackSlot, useShowBackButton } from './BackButton';
 import { useDashboardAccent } from './dashboardAccent';
 import { RdIcon } from './RdIcon';
 import { RdImg } from './RdImg';
+import { TabIcon } from './TabIcon';
 import { ThemeIcon, useThemeSwitch } from './ThemeToggle';
 import { UserAvatar } from './UserAvatar';
 import { USEFUL_LINKS, externalProps } from './links';
 
 const NEWS_URL = 'https://t.me/postq_news';
+
+/**
+ * Свёрнут ли логотип в шапке на прошлом экране. Маршруты монтируют шапку
+ * заново, и без памяти логотип появлялся бы уже свёрнутым — анимация
+ * «расщепления» была видна только там, где шапка случайно переживала переход.
+ */
+let lastCollapsed = false;
+
+/** `showBack`, но меняется кадром позже монтирования — чтобы переход успел сыграть. */
+function useAnimatedCollapse(showBack: boolean): boolean {
+  const [collapsed, setCollapsed] = useState(lastCollapsed);
+  useEffect(() => {
+    lastCollapsed = showBack;
+    if (collapsed === showBack) return;
+    // Два кадра: первый рисует прошлое состояние, второй запускает transition.
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setCollapsed(showBack));
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [showBack, collapsed]);
+  return collapsed;
+}
 
 export { MOBILE_TABS, isMobileTabScreen } from './menuScreens';
 
@@ -52,7 +80,7 @@ export function MobileHeader({ topInset }: { topInset: number }) {
   });
   const rubles = balance?.balance_rubles;
   const softTopUp = useDashboardAccent((st) => st.softTopUp);
-  const showBack = useShowBackButton();
+  const showBack = useAnimatedCollapse(useShowBackButton());
 
   return (
     // Fixed: two compact 56px glass pills — the logo, and the balance with a
@@ -70,10 +98,17 @@ export function MobileHeader({ topInset }: { topInset: number }) {
           <Link
             to="/"
             aria-label={t('nav.dashboard')}
-            className="rd-liquid-glass flex h-14 shrink-0 items-center rounded-[24px] px-4"
+            className={cn(
+              'rd-liquid-glass flex h-14 shrink-0 items-center rounded-[24px] transition-[padding] duration-300 ease-out motion-reduce:transition-none',
+              // Свёрнутый — ровный квадрат 56×56, как «Назад» рядом. Знак
+              // 24.67px в окне 26px (чтобы не срезать скругление), поэтому
+              // справа на 1.33px меньше: рамка 1 + 14.67 + 26 + 13.33 + 1,
+              // и видимые зазоры вокруг знака равны.
+              showBack ? 'pl-[14.67px] pr-[13.33px]' : 'px-4',
+            )}
           >
-            {/* 26px = the mark at this height. Narrow phones (iPhone SE 1st
-                gen, 320px) always show the mark alone. */}
+            {/* 26px window over the mark (24.67px at this height). Narrow
+                phones (iPhone SE 1st gen, 320px) always show the mark alone. */}
             <span
               className={cn(
                 'block h-[26px] overflow-hidden transition-[width] duration-300 ease-out motion-reduce:transition-none',
@@ -173,9 +208,9 @@ export function MobileTabBar({ hidden }: { hidden?: boolean }) {
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
 
   const tabs = [
-    { to: '/', label: t('nav.dashboard'), icon: 'cabinet/home' },
-    { to: '/balance', label: t('nav.payment', 'Оплата'), icon: 'cabinet/credit-card' },
-    { to: '/support', label: t('nav.support'), icon: 'cabinet/headphones-bold', badge: unread },
+    { to: '/', label: t('nav.dashboard'), icon: 'home' as const },
+    { to: '/balance', label: t('nav.payment', 'Оплата'), icon: 'card' as const },
+    { to: '/support', label: t('nav.support'), icon: 'support' as const, badge: unread },
     { to: '/profile', label: t('nav.profile'), icon: null },
   ];
 
@@ -226,7 +261,7 @@ export function MobileTabBar({ hidden }: { hidden?: boolean }) {
               )}
             >
               <span className="relative flex size-6 items-center justify-center">
-                {tab.icon ? <RdIcon name={tab.icon} size={22} /> : <UserAvatar size={24} />}
+                {tab.icon ? <TabIcon name={tab.icon} active={active} /> : <UserAvatar size={24} />}
                 {!!tab.badge && (
                   <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--rd-action)] px-1 text-[12px] font-medium leading-none text-white">
                     {tab.badge > 9 ? '9+' : tab.badge}

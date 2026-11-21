@@ -837,8 +837,35 @@ html.postq.dark .rd-liquid-glass__active {
     transform 0.45s cubic-bezier(0.32, 0.72, 0, 1),
     opacity 0.2s ease;
 }
+/* Иконка раздела (TabIcon): контурная у обычного, залитая у выбранного. Меняются
+   с той же длительностью и кривой, что едет подложка, — как в XKeenPQ-UI. */
+.rd-tab-icon {
+  display: grid;
+  width: 22px;
+  height: 22px;
+}
+.rd-tab-icon > * {
+  grid-area: 1 / 1;
+  transition:
+    opacity 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.rd-tab-icon__filled {
+  display: flex;
+  opacity: 0;
+  transform: scale(0.8);
+}
+.rd-tab-icon[data-active] .rd-tab-icon__filled {
+  opacity: 1;
+  transform: scale(1);
+}
+.rd-tab-icon[data-active] .rd-tab-icon__outline {
+  opacity: 0;
+  transform: scale(1.1);
+}
 @media (prefers-reduced-motion: reduce) {
-  .rd-liquid-glass__slider {
+  .rd-liquid-glass__slider,
+  .rd-tab-icon > * {
     transition: none;
   }
 }

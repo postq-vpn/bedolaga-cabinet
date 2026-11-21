@@ -113,7 +113,7 @@ export function OutdatedClientBanner({ devices }: { devices: Device[] }) {
                 <span className="rd-p-sm text-[var(--rd-caption)]">
                   {clientAppLabel(d.app_name)} {d.app_version}
                   {d.min_app_version &&
-                    ` · ${t('postq.devices.needVersion', { version: d.min_app_version })}`}
+                    `, ${t('postq.devices.needVersion', { version: d.min_app_version })}`}
                 </span>
               </span>
               {d.update_url && (

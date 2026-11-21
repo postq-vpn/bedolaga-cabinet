@@ -122,8 +122,12 @@ export function PromoCodeField({
       {promo.success && (
         <p role="status" className="rd-p-sm text-[var(--rd-success-text)]">
           {promo.success.message}
-          {promo.success.amount > 0 &&
-            ` · +${formatAmount(promo.success.amount, Number.isInteger(promo.success.amount) ? 0 : 2)} ${currencySymbol}`}
+          {promo.success.amount > 0 && (
+            <span className="block font-medium">
+              +{formatAmount(promo.success.amount, Number.isInteger(promo.success.amount) ? 0 : 2)}{' '}
+              {currencySymbol}
+            </span>
+          )}
         </p>
       )}
 

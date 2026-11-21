@@ -312,7 +312,15 @@
     "continueWithDiscord": "Продолжить через Discord",
     "continueWithVk": "Продолжить через VK",
     "oauthError": "Авторизация отклонена или не удалась",
-    "oauthExpired": "Сессия OAuth истекла. Попробуйте снова."
+    "oauthExpired": "Сессия OAuth истекла. Попробуйте снова.",
+    "resetLinkSentTo": "Если аккаунт существует, ссылка для сброса пароля придёт на",
+    "legalAccept": "Я принимаю",
+    "legalAnd": "и",
+    "legalDocs": {
+      "public_offer": "условия оферты",
+      "privacy_policy": "политику конфиденциальности"
+    },
+    "resetPasswordTitle": "Сброс пароля"
   },
   "emailVerification": {
     "title": "Подтверждение email",
@@ -1262,8 +1270,8 @@
     "joined": "Присоединился",
     "hasPaid": "Оплатил",
     "status": {
-      "pending": "Ожидание",
-      "paid": "Оплачено"
+      "pending": "Ещё не оплатил",
+      "paid": "Оплатил"
     },
     "earningsHistory": "История начислений",
     "reason": "Причина",
@@ -1277,7 +1285,8 @@
       "referral_commission_topup": "Комиссия с пополнения",
       "referral_registration_reward": "Награда за регистрацию",
       "referral_days_reward": "Дни подписки",
-      "referral_days_bonus": "Бонусные дни"
+      "referral_days_bonus": "Бонусные дни",
+      "referral_commission": "Комиссия с покупки"
     },
     "disabled": "Реферальная программа временно отключена",
     "partner": {
@@ -1404,7 +1413,8 @@
       "saveError": "Не удалось сохранить настройку",
       "kindMoneyHint": "Награда приходит суммой на баланс",
       "kindDaysHint": "Награда продлевает подписку"
-    }
+    },
+    "reasonGeneric": "Начисление"
   },
   "support": {
     "title": "Поддержка",

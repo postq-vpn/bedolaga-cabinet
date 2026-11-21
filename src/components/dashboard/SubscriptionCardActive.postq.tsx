@@ -200,6 +200,8 @@ export default function SubscriptionCardActive({
         open={devicesOpen}
         onOpenChange={setDevicesOpen}
         subscriptionId={subscription.id}
+        knownCount={connectedDevices}
+        knownLimit={deviceLimit}
       />
     </section>
   );

@@ -23,8 +23,9 @@ import TelegramLoginButton from '../components/TelegramLoginButton';
 import OAuthProviderIcon from '../components/OAuthProviderIcon';
 import { saveOAuthState } from '../utils/oauth';
 import { getPendingReferralCode } from '../utils/referral';
-import { UsersIcon, EmailIcon, RefreshIcon } from '@/components/icons';
+import { UsersIcon, RefreshIcon } from '@/components/icons';
 import { CheckEmailCard } from '@/components/auth/CheckEmailCard';
+import { ResetLinkSent } from '@/components/auth/ResetLinkSent';
 import { SiteHeader } from '../components/postq/SiteHeader';
 import { SiteFooter } from '../components/postq/SiteFooter';
 import { RdIcon } from '../components/postq/RdIcon';
@@ -459,52 +460,28 @@ export default function Login() {
               {isEmailAuthEnabled &&
                 (showForgotPassword ? (
                   forgotPasswordSent ? (
-                    <div className="flex flex-col items-center gap-4 text-center">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-[var(--rd-radius-sm)] bg-[var(--rd-help)] text-[var(--rd-action)]">
-                        <EmailIcon className="h-6 w-6" />
-                      </div>
-                      <p className="rd-h6 text-[var(--rd-heading)]">
-                        {t('auth.checkEmail', 'Check your email')}
-                      </p>
-                      <p className="rd-p-md text-[var(--rd-caption)]">
-                        {t(
-                          'auth.passwordResetSent',
-                          'If an account exists with this email, we sent password reset instructions.',
-                        )}
-                      </p>
-                      {/* Тот же тупик, что и после регистрации: письма нет,
-                          и человек не знает, где смотреть. */}
-                      <p className="rd-p-md w-full rounded-[var(--rd-radius-sm)] bg-[var(--rd-field)] px-6 py-4 text-left text-[var(--rd-caption)]">
-                        {t('auth.spamHint')}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={closeForgotPasswordModal}
-                        className="rd-link-action rd-p-md"
-                      >
-                        {t('common.back', 'Back')}
-                      </button>
-                    </div>
+                    <ResetLinkSent
+                      email={forgotPasswordEmail.trim()}
+                      onBack={closeForgotPasswordModal}
+                    />
                   ) : (
                     <div className="flex flex-col gap-5">
-                      <p className="rd-p-md text-center text-[var(--rd-caption)]">
-                        {t(
-                          'auth.forgotPasswordHint',
-                          'Enter your email and we will send you instructions to reset your password.',
-                        )}
-                      </p>
+                      <h2 className="rd-h6 text-center text-[var(--rd-heading)]">
+                        {t('auth.resetPasswordTitle')}
+                      </h2>
                       <form onSubmit={handleForgotPassword} className="flex flex-col gap-5">
-                        <AuthField id="forgotEmail" label={t('auth.email')}>
+                        <div className="rd-field">
                           <input
                             id="forgotEmail"
                             type="email"
                             autoComplete="email"
+                            aria-label={t('auth.email')}
                             value={forgotPasswordEmail}
                             onChange={(e) => setForgotPasswordEmail(e.target.value)}
                             placeholder="you@example.com"
                             autoFocus
                           />
-                        </AuthField>
+                        </div>
                         {forgotPasswordError && (
                           <p role="alert" className="rd-p-md text-[var(--rd-error-text)]">
                             {forgotPasswordError}
@@ -643,14 +620,8 @@ export default function Login() {
                       </button>
                     </form>
 
-                    {authMode === 'register' ? (
-                      <p className="rd-p-sm text-center text-[var(--rd-caption)]">
-                        {t(
-                          'auth.verificationEmailNotice',
-                          'After registration, a verification email will be sent to your address',
-                        )}
-                      </p>
-                    ) : (
+                    {/* После регистрации и так откроется «Проверьте почту» — заранее не пугаем. */}
+                    {authMode === 'login' && (
                       <button
                         type="button"
                         onClick={() => {
@@ -665,7 +636,8 @@ export default function Login() {
                   </div>
                 ))}
 
-              {!(isTelegramWebApp && (isLoading || error)) && (
+              {/* Сброс пароля — отдельный сценарий: входы через сервисы там только мешают. */}
+              {!(isTelegramWebApp && (isLoading || error)) && !showForgotPassword && (
                 <>
                   {isEmailAuthEnabled && (
                     <div className="flex items-center gap-4">

@@ -167,7 +167,7 @@ export function SbpAutopayRow({
             : t('postq.sbp.pendingText')}
         {bankUrl && !confirmExpired && (
           <>
-            {' · '}
+            <br />
             <button
               type="button"
               onClick={() => openPaymentUrl(bankUrl, platform, openLink)}

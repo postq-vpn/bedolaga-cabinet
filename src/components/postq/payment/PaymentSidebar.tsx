@@ -60,7 +60,7 @@ export function PaymentHeading() {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-2">
-      <h1 className="rd-h2 text-[var(--rd-heading)]">{t('postq.payment.title')}</h1>
+      <h1 className="rd-h3 text-[var(--rd-heading)]">{t('postq.payment.title')}</h1>
       <p className="rd-p-lg text-[var(--rd-caption)]">{t('postq.payment.subtitle')}</p>
     </div>
   );

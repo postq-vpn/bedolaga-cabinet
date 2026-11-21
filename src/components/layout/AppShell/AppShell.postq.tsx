@@ -13,7 +13,11 @@ import { PromptDialogHost } from '@/components/PromptDialogHost';
 import { MobileHeader, MobileTabBar, isMobileTabScreen } from '@/components/postq/MobileNav';
 import { useChatFocus } from '@/components/postq/chatFocus';
 import { CabinetHeader } from '@/components/postq/CabinetHeader';
-import { BackButton, useShowBackButton } from '@/components/postq/BackButton';
+import {
+  BackButton,
+  useShowBackButton,
+  useTelegramBackButton,
+} from '@/components/postq/BackButton';
 import { useBackOverride } from '@/components/postq/backOverride';
 import { usePendingPurchase } from '@/components/postq/purchase/usePendingPurchase';
 import { useBackgroundConsumer } from '@/components/backgrounds/BackgroundHost';
@@ -47,6 +51,7 @@ export function AppShell({ children }: AppShellProps) {
   const chatFocus = useChatFocus((st) => st.chatFocus);
   const showMobileNav = isMobileTabScreen(location.pathname) && !chatFocus;
   const showBack = useShowBackButton();
+  useTelegramBackButton();
   // A screen with «Назад» in its own layout (purchase wizard) draws it there.
   const inlineBack = useBackOverride((s) => s.inlineHosts > 0);
 

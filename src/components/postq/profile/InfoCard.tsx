@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { infoApi } from '@/api/info';
@@ -10,12 +11,13 @@ import { uiLocale } from '@/utils/uiLocale';
 import { cn } from '@/lib/utils';
 import { RdIcon } from '../RdIcon';
 import { ProgressTrack } from '../ui';
-import { RdDialog } from '../RdDialog';
 
 /**
  * «Документы и помощь» in the profile — what the separate Info page used to
  * hold (FAQ, rules, privacy, offer, loyalty statuses, the admin's own pages).
- * Plain rows like the «ещё» card; a row opens its text in a dialog.
+ * Plain rows like the «ещё» card; a row leads to its own page
+ * (/profile/docs/:id, InfoDocument.postq) — documents are long and deserve
+ * a real screen with a link, «Назад» and the browser history, not a dialog.
  *
  * Same visibility rules as the Info page: a built-in section shows when the
  * admin left it visible or replaced it with an own page; the admin's extra
@@ -23,7 +25,7 @@ import { RdDialog } from '../RdDialog';
  */
 
 type BuiltIn = 'faq' | 'rules' | 'privacy' | 'offer';
-type Section =
+export type Section =
   | { kind: BuiltIn; label: string; slug: string | null }
   | { kind: 'loyalty'; label: string }
   | { kind: 'page'; label: string; slug: string };
@@ -38,27 +40,31 @@ function useLocaleCode() {
 const pick = (texts: Record<string, string>, locale: string) =>
   texts[locale] || texts.ru || texts.en || '';
 
-export function InfoCard() {
+/** Address of a section's page: built-ins and statuses by kind, the admin's pages by slug. */
+export const sectionId = (s: Section) => (s.kind === 'page' ? s.slug : s.kind);
+export const sectionPath = (s: Section) => `/profile/docs/${encodeURIComponent(sectionId(s))}`;
+
+/** The sections the profile shows; `ready` once everything they depend on has loaded. */
+export function useInfoSections(): { sections: Section[]; ready: boolean } {
   const { t } = useTranslation();
   const locale = useLocaleCode();
-  const [open, setOpen] = useState<Section | null>(null);
 
-  const { data: replacements } = useQuery({
+  const { data: replacements, isPending: p1 } = useQuery({
     queryKey: ['info-pages', 'tab-replacements'],
     queryFn: infoPagesApi.getTabReplacements,
     staleTime: 60_000,
   });
-  const { data: pages } = useQuery({
+  const { data: pages, isPending: p2 } = useQuery({
     queryKey: ['info-pages', 'list'],
     queryFn: () => infoPagesApi.getPages(),
     staleTime: 60_000,
   });
-  const { data: visibility } = useQuery({
+  const { data: visibility, isPending: p3 } = useQuery({
     queryKey: ['info-visibility'],
     queryFn: infoApi.getVisibility,
     staleTime: 60_000,
   });
-  const { data: loyalty } = useQuery({
+  const { data: loyalty, isPending: p4 } = useQuery({
     queryKey: ['loyalty-tiers'],
     queryFn: promoApi.getLoyaltyTiers,
     staleTime: 60_000,
@@ -82,6 +88,13 @@ export function InfoCard() {
     return list;
   }, [replacements, visibility, loyalty, pages, locale, t]);
 
+  return { sections, ready: !(p1 || p2 || p3 || p4) };
+}
+
+export function InfoCard() {
+  const { t } = useTranslation();
+  const { sections } = useInfoSections();
+
   if (!sections.length) return null;
 
   return (
@@ -89,10 +102,9 @@ export function InfoCard() {
       <h2 className="rd-h6 text-[var(--rd-heading)]">{t('postq.info.title')}</h2>
       <div className="flex flex-col">
         {sections.map((s, i) => (
-          <button
-            key={s.kind + ('slug' in s ? (s.slug ?? '') : '')}
-            type="button"
-            onClick={() => setOpen(s)}
+          <Link
+            key={sectionId(s)}
+            to={sectionPath(s)}
             className={cn(
               'rd-p-lg flex min-h-14 items-center justify-between gap-4 py-4 text-left text-[var(--rd-heading)] transition-colors hover:text-[var(--rd-action)]',
               i < sections.length - 1 && 'border-b border-[var(--rd-divider)]',
@@ -104,23 +116,14 @@ export function InfoCard() {
               size={20}
               className="shrink-0 rotate-90 text-[var(--rd-caption)]"
             />
-          </button>
+          </Link>
         ))}
       </div>
-      <InfoDialog section={open} onClose={() => setOpen(null)} />
     </section>
   );
 }
 
-function InfoDialog({ section, onClose }: { section: Section | null; onClose: () => void }) {
-  return (
-    <RdDialog open={!!section} onOpenChange={(o) => !o && onClose()} title={section?.label} wide>
-      {section && <SectionBody section={section} />}
-    </RdDialog>
-  );
-}
-
-function SectionBody({ section }: { section: Section }) {
+export function SectionBody({ section }: { section: Section }) {
   if (section.kind === 'loyalty') return <LoyaltyBody />;
   if (section.slug) return <PageBody slug={section.slug} />;
   if (section.kind === 'faq') return <FaqBody />;
@@ -283,7 +286,9 @@ function LoyaltyBody() {
           <div className="flex flex-col gap-2">
             <ProgressTrack percent={data.progress_percent} label={t('info.yourProgress')} />
             <p className="rd-p-md text-[var(--rd-caption)]">
-              {t('info.nextStatus')}: {data.next_tier_name} · {t('info.toNextStatus')}{' '}
+              {t('info.nextStatus')}: {data.next_tier_name}
+              <br />
+              {t('info.toNextStatus')}{' '}
               {rub(Math.max(0, data.next_tier_threshold_rubles - data.current_spent_rubles))}
             </p>
           </div>
@@ -331,7 +336,7 @@ function LoyaltyBody() {
                 </span>
               </div>
               <p className="rd-p-md text-[var(--rd-caption)]">
-                {discounts.length ? discounts.join(' · ') : t('info.noDiscounts')}
+                {discounts.length ? discounts.join(', ') : t('info.noDiscounts')}
               </p>
             </li>
           );

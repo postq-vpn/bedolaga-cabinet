@@ -123,7 +123,8 @@ describe('TelegramLoginButton (OIDC): 428 «нужно согласие»', () =
     });
 
     const checkboxes = await screen.findAllByRole('checkbox');
-    expect(checkboxes).toHaveLength(CONSENT_DOCUMENTS.length);
+    // Одна галочка на все документы.
+    expect(checkboxes).toHaveLength(1);
     for (const checkbox of checkboxes) fireEvent.click(checkbox);
 
     await act(async () => {

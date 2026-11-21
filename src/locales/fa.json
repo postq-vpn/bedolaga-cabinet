@@ -304,7 +304,15 @@
     "continueWithDiscord": "ادامه با Discord",
     "continueWithVk": "ادامه با VK",
     "oauthError": "مجوز رد شد یا ناموفق بود",
-    "oauthExpired": "نشست OAuth منقضی شده است. لطفاً دوباره امتحان کنید."
+    "oauthExpired": "نشست OAuth منقضی شده است. لطفاً دوباره امتحان کنید.",
+    "resetLinkSentTo": "اگر حسابی وجود داشته باشد، پیوند بازنشانی رمز عبور به این نشانی ارسال می‌شود:",
+    "legalAccept": "می‌پذیرم",
+    "legalAnd": "و",
+    "legalDocs": {
+      "public_offer": "شرایط پیشنهاد عمومی",
+      "privacy_policy": "سیاست حفظ حریم خصوصی"
+    },
+    "resetPasswordTitle": "بازنشانی رمز عبور"
   },
   "emailVerification": {
     "title": "تایید ایمیل",
@@ -1242,7 +1250,8 @@
       "referral_commission_topup": "کمیسیون شارژ",
       "referral_registration_reward": "پاداش ثبت‌نام",
       "referral_days_reward": "روزهای اشتراک",
-      "referral_days_bonus": "روزهای هدیه"
+      "referral_days_bonus": "روزهای هدیه",
+      "referral_commission": "کمیسیون خرید"
     },
     "disabled": "برنامه معرفی موقتاً غیرفعال است",
     "partner": {
@@ -1369,7 +1378,8 @@
       "saveError": "ذخیره تنظیمات ممکن نشد",
       "kindMoneyHint": "پاداش به صورت مبلغ به موجودی شما اضافه می‌شود",
       "kindDaysHint": "پاداش اشتراک شما را تمدید می‌کند"
-    }
+    },
+    "reasonGeneric": "پاداش"
   },
   "support": {
     "title": "پشتیبانی",

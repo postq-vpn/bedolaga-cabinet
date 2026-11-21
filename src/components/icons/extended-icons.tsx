@@ -80,6 +80,7 @@ import {
   PiHardDrives,
   PiGearSix,
   PiShareNetwork,
+  PiShareNetworkBold,
   PiSparkle,
   PiChartLine,
   PiGift,
@@ -447,6 +448,10 @@ export const SettingsIcon = ({ className }: IconProps) => (
 
 export const ShareIcon = ({ className }: IconProps) => (
   <PiShareNetwork className={cn('h-5 w-5', className)} />
+);
+/** Жирная версия — для кнопок, где рядом полужирный текст. */
+export const ShareBoldIcon = ({ className }: IconProps) => (
+  <PiShareNetworkBold className={cn('h-5 w-5', className)} />
 );
 
 export const SparklesIcon = ({ className }: IconProps) => (

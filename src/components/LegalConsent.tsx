@@ -10,9 +10,13 @@ export const LEGAL_DOCUMENT_LINKS: Record<string, string> = {
   privacy_policy: '/privacy',
 };
 
+// Названия в том виде, в каком они стоят в фразе «Я принимаю …».
 const LEGAL_DOCUMENT_LABELS: Record<string, { key: string; fallback: string }> = {
-  public_offer: { key: 'footer.offer', fallback: 'Публичная оферта' },
-  privacy_policy: { key: 'footer.privacy', fallback: 'Политика конфиденциальности' },
+  public_offer: { key: 'auth.legalDocs.public_offer', fallback: 'условия оферты' },
+  privacy_policy: {
+    key: 'auth.legalDocs.privacy_policy',
+    fallback: 'политику конфиденциальности',
+  },
 };
 
 interface LegalConsentProps {
@@ -23,6 +27,11 @@ interface LegalConsentProps {
   className?: string;
 }
 
+/**
+ * Одна галочка на все документы, как у больших сервисов: «Я принимаю условия
+ * оферты и политику конфиденциальности». Бэк по-прежнему получает согласие на
+ * каждый документ — галочка ставит и снимает их все сразу.
+ */
 export default function LegalConsent({
   documents,
   accepted,
@@ -34,49 +43,58 @@ export default function LegalConsent({
 
   if (documents.length === 0) return null;
 
-  return (
-    <div className={`space-y-2.5 ${className}`}>
-      {documents.map((document) => {
-        // Неизвестный ключ всё равно показываем: он обязателен на бэке, и молча
-        // спрятанный чекбокс превратился бы в «кнопка не работает без объяснений».
-        const label = LEGAL_DOCUMENT_LABELS[document];
-        const href = LEGAL_DOCUMENT_LINKS[document];
-        const title = label ? t(label.key, label.fallback) : document;
-        const inputId = `legal-consent-${document}`;
+  const allAccepted = documents.every((document) => accepted[document]);
+  const links = documents.map((document) => {
+    // Неизвестный ключ всё равно называем: он обязателен на бэке, и молча
+    // пропавший документ превратился бы в «кнопка не работает без объяснений».
+    const label = LEGAL_DOCUMENT_LABELS[document];
+    const href = LEGAL_DOCUMENT_LINKS[document];
+    const title = label ? t(label.key, label.fallback) : document;
+    return href ? (
+      <a
+        key={document}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[var(--rd-heading)] underline decoration-[var(--rd-border)] underline-offset-2 transition-colors hover:decoration-current"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {title}
+      </a>
+    ) : (
+      <span key={document} className="text-[var(--rd-heading)]">
+        {title}
+      </span>
+    );
+  });
 
-        return (
-          <label
-            key={document}
-            htmlFor={inputId}
-            className="flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-dark-400"
-          >
-            <input
-              id={inputId}
-              type="checkbox"
-              checked={Boolean(accepted[document])}
-              disabled={disabled}
-              onChange={(e) => onChange(document, e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-dark-600 bg-dark-800 text-accent-500 focus:ring-accent-500"
-            />
-            <span>
-              {t('auth.legalConsentPrefix', 'Я ознакомлен(а) с документом')}{' '}
-              {href ? (
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-accent-400 underline underline-offset-2 transition-colors hover:text-accent-300"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {title}
-                </a>
-              ) : (
-                <span className="text-dark-200">{title}</span>
-              )}
-            </span>
-          </label>
-        );
-      })}
-    </div>
+  return (
+    <label
+      htmlFor="legal-consent"
+      className={`rd-p-md flex cursor-pointer items-start gap-3 text-[var(--rd-caption)] ${className}`}
+    >
+      {/* Высотой в строку текста — галочка по центру первой строки и при переносе. */}
+      <span className="flex h-[1lh] shrink-0 items-center">
+        <input
+          id="legal-consent"
+          type="checkbox"
+          checked={allAccepted}
+          disabled={disabled}
+          onChange={(e) => {
+            for (const document of documents) onChange(document, e.target.checked);
+          }}
+          className="m-0 size-[18px] translate-y-px cursor-pointer accent-[var(--rd-action)]"
+        />
+      </span>
+      <span>
+        {t('auth.legalAccept', 'Я принимаю')}{' '}
+        {links.map((link, index) => (
+          <span key={index}>
+            {index > 0 && (index === links.length - 1 ? ` ${t('auth.legalAnd', 'и')} ` : ', ')}
+            {link}
+          </span>
+        ))}
+      </span>
+    </label>
   );
 }

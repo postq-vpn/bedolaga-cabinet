@@ -51,6 +51,7 @@ const Profile = lazyWithRetry(() => import('./pages/Profile'));
 const Contests = lazyWithRetry(() => import('./pages/Contests'));
 const Polls = lazyWithRetry(() => import('./pages/Polls'));
 const Info = lazyWithRetry(() => import('./pages/Info'));
+const InfoDocument = lazyWithRetry(() => import('./pages/InfoDocument.postq'));
 const Wheel = lazyWithRetry(() => import('./pages/Wheel'));
 const GiftSubscription = lazyWithRetry(() => import('./pages/GiftSubscription'));
 const GiftResult = lazyWithRetry(() => import('./pages/GiftResult'));
@@ -597,6 +598,22 @@ function App() {
                 <Profile />
               </LazyPage>
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/docs/:id"
+          element={
+            // postq: a document from «Документы и помощь»; the old design keeps them on /info.
+            <DesignRoute
+              postq={
+                <ProtectedRoute>
+                  <LazyPage>
+                    <InfoDocument />
+                  </LazyPage>
+                </ProtectedRoute>
+              }
+              legacy={<Navigate to="/info" replace />}
+            />
           }
         />
         <Route

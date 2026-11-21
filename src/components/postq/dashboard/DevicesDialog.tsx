@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslation } from 'react-i18next';
 import { subscriptionApi } from '@/api/subscription';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -31,10 +32,17 @@ export function DevicesDialog({
   open,
   onOpenChange,
   subscriptionId,
+  knownCount,
+  knownLimit,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   subscriptionId: number;
+  /** Сколько устройств подключено и лимит — уже известны карточке подписки.
+   *  Пока список грузится, шторка сразу открывается своей высоты: заголовок,
+   *  полоска и столько же скелетон-плиток, без прыжка при загрузке. */
+  knownCount?: number;
+  knownLimit?: number;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -48,7 +56,9 @@ export function DevicesDialog({
     enabled: open,
   });
   const devices = devicesQuery.data?.devices ?? [];
-  const currentLimit = devicesQuery.data?.device_limit ?? 0;
+  const loadingDevices = devicesQuery.isLoading;
+  const currentLimit = devicesQuery.data?.device_limit ?? knownLimit ?? 0;
+  const shownCount = loadingDevices ? (knownCount ?? 0) : devices.length;
 
   const [target, setTarget] = useState(currentLimit);
   useEffect(() => {
@@ -194,12 +204,12 @@ export function DevicesDialog({
         open={open}
         onOpenChange={onOpenChange}
         title={t('postq.devices.title')}
-        description={t('postq.devices.connected', { used: devices.length, limit: currentLimit })}
+        description={t('postq.devices.connected', { used: shownCount, limit: currentLimit })}
         sheet
         pinned={
           currentLimit > 0 ? (
             <ProgressTrack
-              percent={(devices.length / currentLimit) * 100}
+              percent={(shownCount / currentLimit) * 100}
               label={t('postq.devices.title')}
             />
           ) : undefined
@@ -209,8 +219,8 @@ export function DevicesDialog({
               detail line; rename / remove sit in the «…» menu (same as the
               subscription card), confirmations happen right in the tile. */}
         <div className="flex flex-col gap-2">
-          {devicesQuery.isLoading ? (
-            <p className="rd-p-md text-[var(--rd-caption)]">{t('common.loading')}</p>
+          {loadingDevices ? (
+            <DeviceSkeletons count={knownCount ?? SCROLL_AFTER} />
           ) : devices.length === 0 ? (
             <p className="rd-p-md rounded-[var(--rd-radius-sm)] bg-[var(--rd-field)] px-6 py-4 text-[var(--rd-caption)]">
               {t('postq.devices.empty')}
@@ -317,7 +327,7 @@ export function DevicesDialog({
                                 : null,
                             ]
                               .filter(Boolean)
-                              .join(' · ')}
+                              .join(', ')}
                           </span>
                           {d.app_outdated && (
                             <span className="rd-p-sm flex min-w-0 items-center gap-1.5 text-[var(--rd-error-text)]">
@@ -506,5 +516,37 @@ export function DevicesDialog({
         />
       )}
     </>
+  );
+}
+
+/** Плитки-заглушки той же высоты и формы, что плитка устройства; на десктопе
+ *  столько же, сколько видно до прокрутки. */
+function DeviceSkeletons({ count }: { count: number }) {
+  const { t } = useTranslation();
+  if (count <= 0) return null;
+  return (
+    <div
+      role="status"
+      aria-label={t('common.loading')}
+      className={cn(
+        'flex flex-col gap-2',
+        count > SCROLL_AFTER &&
+          'sm:max-h-[264px] sm:overflow-hidden sm:rounded-[var(--rd-radius-sm)]',
+      )}
+    >
+      {Array.from({ length: count }, (_, i) => (
+        <div
+          key={i}
+          className="flex min-h-16 shrink-0 items-center gap-4 rounded-[var(--rd-radius-sm)] bg-[var(--rd-field)] px-4 py-3"
+        >
+          <Skeleton className="size-6 shrink-0" />
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <Skeleton className="h-4 w-32 max-w-full" />
+            <Skeleton className="h-3 w-44 max-w-full" />
+          </div>
+          <Skeleton circle className="size-8 shrink-0" />
+        </div>
+      ))}
+    </div>
   );
 }

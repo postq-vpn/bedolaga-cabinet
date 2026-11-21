@@ -698,8 +698,7 @@ export function PurchaseWizard({
                             className="rd-link"
                             onClick={() => sbpQuoteQuery.refetch()}
                           >
-                            {t('subscription.purchaseDevices.priceUnavailable')} ·{' '}
-                            {t('common.retry')}
+                            {t('subscription.purchaseDevices.priceUnavailable')} {t('common.retry')}
                           </button>
                         ) : sbpQuote ? (
                           t(
@@ -715,9 +714,9 @@ export function PurchaseWizard({
                         )}
                         {/* The bot charges SBP at the plain price: a promo
                             discount isn't frozen into a recurring charge. */}
-                        {sbpPeriodOk &&
-                          price.promoDiscount > 0 &&
-                          ` · ${t('postq.promo.notForSbp')}`}
+                        {sbpPeriodOk && price.promoDiscount > 0 && (
+                          <span className="block">{t('postq.promo.notForSbp')}</span>
+                        )}
                       </span>
                     </div>
                     {sbpPeriodOk ? (
