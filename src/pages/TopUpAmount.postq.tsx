@@ -22,7 +22,7 @@ import { openPaymentUrl } from '../utils/openPaymentUrl';
 import { getApiErrorMessage } from '../utils/api-error';
 import { copyToClipboard } from '@/utils/clipboard';
 import { Skeleton, SkeletonGroup } from '@/components/ui/skeleton';
-import { CheckIcon, CopyIcon, ExternalLinkIcon } from '@/components/icons';
+import { CheckIcon, CopyIcon, ExternalLinkBoldIcon } from '@/components/icons';
 import { stripLeadingEmoji } from '@/utils/stripLeadingEmoji';
 
 const getPreferredOptionId = (options?: PaymentMethod['options']) => {
@@ -136,6 +136,20 @@ export default function TopUpAmount() {
     getPreferredOptionId(method?.options),
   );
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  // Ссылка появляется под формой — на телефоне за нижним краем экрана, и
+  // нажатие «Пополнить» выглядело как ничего не сделавшее. Докручиваем к ней.
+  const paymentLinkRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!paymentUrl) return;
+    const frame = requestAnimationFrame(() => {
+      const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      paymentLinkRef.current?.scrollIntoView({
+        behavior: reduce ? 'auto' : 'smooth',
+        block: 'nearest',
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [paymentUrl]);
   const [qrPayload, setQrPayload] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -629,8 +643,11 @@ export default function TopUpAmount() {
           {/* Payment link display - shown when URL is received */}
           {paymentUrl && (
             <motion.div
+              ref={paymentLinkRef}
               variants={staggerItem}
-              className="flex flex-col gap-4 rounded-[var(--rd-radius-md)] bg-[var(--rd-field)] p-6"
+              // Отступы прокрутки: сверху — под фиксированную шапку телефона.
+              className="flex scroll-mb-6 flex-col gap-4 rounded-[var(--rd-radius-md)] bg-[var(--rd-field)] p-6"
+              style={{ scrollMarginTop: 'calc(var(--rd-top-inset, 0px) + 92px)' }}
             >
               <div className="rd-p-lg flex items-center gap-2 text-[var(--rd-heading)]">
                 <CheckIcon className="h-5 w-5 text-[var(--rd-success-text)]" />
@@ -659,18 +676,18 @@ export default function TopUpAmount() {
               )}
 
               <button type="button" onClick={handleOpenPayment} className="rd-btn w-full">
-                <ExternalLinkIcon />
+                <ExternalLinkBoldIcon />
                 <span>{t('balance.openPaymentPage')}</span>
               </button>
 
               <div className="flex items-center gap-2">
-                <div className="min-w-0 flex-1 rounded-[var(--rd-radius-sm)] bg-[var(--rd-surface)] px-4 py-3">
-                  <p className="rd-p-sm truncate text-[var(--rd-caption)]">{paymentUrl}</p>
+                <div className="flex h-11 min-w-0 flex-1 items-center rounded-[var(--rd-radius-sm)] bg-[var(--rd-surface)] px-4">
+                  <p className="rd-p-sm min-w-0 truncate text-[var(--rd-caption)]">{paymentUrl}</p>
                 </div>
                 <button
                   type="button"
                   onClick={handleCopyUrl}
-                  className={`shrink-0 rounded-[var(--rd-radius-sm)] bg-[var(--rd-surface)] p-3 transition-colors ${
+                  className={`flex size-11 shrink-0 items-center justify-center rounded-[var(--rd-radius-sm)] bg-[var(--rd-surface)] transition-colors ${
                     copied
                       ? 'text-[var(--rd-success-text)]'
                       : 'text-[var(--rd-caption)] hover:text-[var(--rd-heading)]'

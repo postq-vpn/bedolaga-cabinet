@@ -81,6 +81,7 @@ import {
   PiGearSix,
   PiShareNetwork,
   PiShareNetworkBold,
+  PiArrowSquareOutBold,
   PiSparkle,
   PiChartLine,
   PiGift,
@@ -450,6 +451,10 @@ export const ShareIcon = ({ className }: IconProps) => (
   <PiShareNetwork className={cn('h-5 w-5', className)} />
 );
 /** Жирная версия — для кнопок, где рядом полужирный текст. */
+/** Жирная версия — для кнопок, где рядом полужирный текст. */
+export const ExternalLinkBoldIcon = ({ className }: IconProps) => (
+  <PiArrowSquareOutBold className={cn('h-5 w-5', className)} />
+);
 export const ShareBoldIcon = ({ className }: IconProps) => (
   <PiShareNetworkBold className={cn('h-5 w-5', className)} />
 );
