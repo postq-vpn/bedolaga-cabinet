@@ -4044,7 +4044,7 @@
       "sendReply": "ارسال پاسخ",
       "attachMedia": "پیوست رسانه",
       "invalidFileType": "نوع فایل نامعتبر. از تصاویر، ویدئو (MP4, WebM) یا اسناد (PDF, DOC, TXT, ZIP) استفاده کنید.",
-      "fileTooLarge": "فایل بسیار بزرگ است. حداکثر اندازه ۱۰ مگابایت.",
+      "fileTooLarge": "فایل بسیار بزرگ است. حداکثر اندازه ۲۰ مگابایت.",
       "uploadFailed": "آپلود فایل ناموفق بود",
       "uploading": "در حال آپلود...",
       "uploadComplete": "آپلود شد",

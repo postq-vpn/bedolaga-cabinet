@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import logger from '../utils/logger';
+import { TICKET_MEDIA_MAX_BYTES, preparePhoto } from '../utils/ticketMedia';
 import { linkifyText } from '../utils/linkify';
 import { MessageMediaGrid } from '../components/tickets/MessageMediaGrid';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
@@ -51,7 +52,9 @@ const ALLOWED_FILE_TYPES: Record<string, string> = {
 };
 
 const ACCEPT_STRING = Object.keys(ALLOWED_FILE_TYPES).join(',');
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = TICKET_MEDIA_MAX_BYTES;
+// A photo is compressed before upload, so a larger original still fits.
+const MAX_PHOTO_SOURCE_SIZE = 50 * 1024 * 1024;
 
 export default function AdminTickets() {
   const { t } = useTranslation();
@@ -165,7 +168,7 @@ export default function AdminTickets() {
     for (const file of toAdd) {
       const mediaType = ALLOWED_FILE_TYPES[file.type];
       if (!mediaType) continue;
-      if (file.size > MAX_FILE_SIZE) continue;
+      if (file.size > (mediaType === 'photo' ? MAX_PHOTO_SOURCE_SIZE : MAX_FILE_SIZE)) continue;
 
       const preview = mediaType === 'photo' ? URL.createObjectURL(file) : '';
       if (preview) blobUrlsRef.current.add(preview);
@@ -181,10 +184,23 @@ export default function AdminTickets() {
       // Upload in background; ignore the result if user cleared/unmounted in the meantime.
       (async () => {
         try {
-          const result = await ticketsApi.uploadMedia(file, mediaType);
+          // A big screenshot is shrunk to what Telegram takes as a photo.
+          const prepared = mediaType === 'photo' ? await preparePhoto(file) : file;
+          if (prepared.size > MAX_FILE_SIZE) throw new Error('too large');
+          const result = await ticketsApi.uploadMedia(prepared, mediaType);
           if (uploadIdRef.current !== uploadToken) return;
           setAttachments((prev) =>
-            prev.map((a) => (a.id === id ? { ...a, uploading: false, fileId: result.file_id } : a)),
+            prev.map((a) =>
+              a.id === id
+                ? {
+                    ...a,
+                    uploading: false,
+                    fileId: result.file_id,
+                    // A photo Telegram refused comes back stored as a document.
+                    mediaType: result.media_type || a.mediaType,
+                  }
+                : a,
+            ),
           );
         } catch {
           if (uploadIdRef.current !== uploadToken) return;

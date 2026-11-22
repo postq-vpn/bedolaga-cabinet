@@ -5027,7 +5027,7 @@
       "sendReply": "Send Reply",
       "attachMedia": "Attach media",
       "invalidFileType": "Invalid file type. Use images, videos (MP4, WebM) or documents (PDF, DOC, TXT, ZIP).",
-      "fileTooLarge": "File is too large. Maximum size is 10MB.",
+      "fileTooLarge": "File is too large. Maximum size is 20 MB.",
       "uploadFailed": "Failed to upload file",
       "uploading": "Uploading...",
       "uploadComplete": "Uploaded",

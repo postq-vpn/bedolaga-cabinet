@@ -21,6 +21,7 @@ import { copyToClipboard } from '../utils/clipboard';
 import { linkifyText } from '../utils/linkify';
 import { uiLocale } from '@/utils/uiLocale';
 import logger from '../utils/logger';
+import { TICKET_MEDIA_MAX_BYTES, preparePhoto } from '../utils/ticketMedia';
 
 interface MediaAttachment {
   id: string;
@@ -30,6 +31,13 @@ interface MediaAttachment {
   fileId?: string;
   mediaType: 'photo' | 'video' | 'document';
   error?: string;
+}
+
+function storedMediaType(
+  stored: string | undefined,
+  fallback: MediaAttachment['mediaType'],
+): MediaAttachment['mediaType'] {
+  return stored === 'photo' || stored === 'video' || stored === 'document' ? stored : fallback;
 }
 
 const ALLOWED_FILE_TYPES: Record<string, MediaAttachment['mediaType']> = {
@@ -48,7 +56,9 @@ const ALLOWED_FILE_TYPES: Record<string, MediaAttachment['mediaType']> = {
   'application/x-rar-compressed': 'document',
 };
 const ACCEPT_STRING = Object.keys(ALLOWED_FILE_TYPES).join(',');
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILE_SIZE = TICKET_MEDIA_MAX_BYTES;
+// A photo is compressed before upload, so a larger original still fits.
+const MAX_PHOTO_SOURCE_SIZE = 50 * 1024 * 1024;
 const STATUSES = ['open', 'pending', 'answered', 'closed'] as const;
 
 const DESKTOP_QUERY = '(min-width: 1024px)';
@@ -248,7 +258,7 @@ export default function AdminTickets() {
         setReplyError(t('admin.tickets.invalidFileType'));
         continue;
       }
-      if (file.size > MAX_FILE_SIZE) {
+      if (file.size > (mediaType === 'photo' ? MAX_PHOTO_SOURCE_SIZE : MAX_FILE_SIZE)) {
         setReplyError(t('admin.tickets.fileTooLarge'));
         continue;
       }
@@ -260,12 +270,28 @@ export default function AdminTickets() {
           : `att_${Date.now()}_${Math.random().toString(36).slice(2)}`;
       const token = uploadIdRef.current;
       setAttachments((prev) => [...prev, { id, file, preview, uploading: true, mediaType }]);
-      ticketsApi
-        .uploadMedia(file, mediaType)
+      // A big screenshot is shrunk to what Telegram takes as a photo
+      // (≤ 10 MB, width + height ≤ 10 000), same as on the user's side.
+      (mediaType === 'photo' ? preparePhoto(file) : Promise.resolve(file))
+        .then((prepared) => {
+          if (prepared.size > MAX_FILE_SIZE) throw new Error('too large');
+          return ticketsApi.uploadMedia(prepared, mediaType);
+        })
         .then((result) => {
           if (uploadIdRef.current !== token) return;
           setAttachments((prev) =>
-            prev.map((a) => (a.id === id ? { ...a, uploading: false, fileId: result.file_id } : a)),
+            prev.map((a) =>
+              a.id === id
+                ? {
+                    ...a,
+                    uploading: false,
+                    fileId: result.file_id,
+                    // Telegram may refuse a large screenshot as a photo and the
+                    // server stores it as a file: send it with the stored type.
+                    mediaType: storedMediaType(result.media_type, a.mediaType),
+                  }
+                : a,
+            ),
           );
         })
         .catch(() => {
