@@ -268,16 +268,21 @@ describe('состояния загрузки страниц', () => {
       // Redesigned pages load their design version lazily (designSwitch): wait
       // until the page itself replaces the loader.
       let groups: HTMLElement[] = [];
-      await waitFor(() => {
-        groups = screen.getAllByRole('status');
-        expect(groups.length).toBeGreaterThanOrEqual(1);
-        expect(groups[0].getAttribute('aria-busy')).toBe('true');
+      await waitFor(
+        () => {
+          groups = screen.getAllByRole('status');
+          expect(groups.length).toBeGreaterThanOrEqual(1);
+          expect(groups[0].getAttribute('aria-busy')).toBe('true');
 
-        // Плейсхолдеры примитива, а не инлайновая разметка. Заливку иногда
-        // перекрывает вызывающая сторона (стеклянные карточки Subscriptions),
-        // поэтому проверяем сам факт плейсхолдеров.
-        expect(groups[0].querySelectorAll('span').length).toBeGreaterThan(0);
-      });
+          // Плейсхолдеры примитива, а не инлайновая разметка. Заливку иногда
+          // перекрывает вызывающая сторона (стеклянные карточки Subscriptions),
+          // поэтому проверяем сам факт плейсхолдеров.
+          expect(groups[0].querySelectorAll('span').length).toBeGreaterThan(0);
+          // The lazy chunk can take over the default second when the whole suite
+          // runs in parallel.
+        },
+        { timeout: 5000 },
+      );
 
       // Внутри области загрузки спиннера быть не должно. Снаружи — можно:
       // кнопка «обновить» имеет право крутиться во время рефетча.

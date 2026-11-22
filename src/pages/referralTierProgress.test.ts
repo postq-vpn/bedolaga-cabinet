@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { tierProgressText } from './Referral';
+import { tierProgressText } from './Referral.postq';
 
 /**
  * The rank line on the partner screen had no test at all: it could be switched

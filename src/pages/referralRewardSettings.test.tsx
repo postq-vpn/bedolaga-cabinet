@@ -57,7 +57,7 @@ const terms = (over: Partial<ReferralTerms> = {}): ReferralTerms =>
 afterEach(cleanup);
 
 async function renderCard(value: ReferralTerms, onChange = vi.fn()) {
-  const { RewardSettings } = await import('./Referral');
+  const { RewardSettings } = await import('./Referral.postq');
   render(<RewardSettings terms={value} onChange={onChange} />);
   return onChange;
 }
@@ -165,7 +165,7 @@ describe('настройки наград пользователя', () => {
   });
 
   it('не дают нажимать, пока запрос в полёте', async () => {
-    const { RewardSettings } = await import('./Referral');
+    const { RewardSettings } = await import('./Referral.postq');
     const onChange = vi.fn();
     render(<RewardSettings terms={terms()} onChange={onChange} pending />);
 

@@ -63,7 +63,7 @@ const terms = (over: Partial<ReferralTerms> = {}): ReferralTerms =>
 afterEach(cleanup);
 
 async function renderTerms(value: ReferralTerms) {
-  const { ProgrammeTerms } = await import('./Referral');
+  const { ProgrammeTerms } = await import('./Referral.postq');
   render(<ProgrammeTerms terms={value} />);
 }
 

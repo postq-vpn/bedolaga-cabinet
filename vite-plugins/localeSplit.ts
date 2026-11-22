@@ -17,10 +17,37 @@ const PREFIX = 'virtual:locale/';
 const RESOLVED = '\0locale-split:';
 const KEEP_IN_BASE = ['nav', 'infoPages'];
 
-export function localeSplit(localesDir: string): Plugin {
+/**
+ * `preloadLang`: its `base` chunk gets a <link rel="modulepreload"> in
+ * index.html. The app imports the locale dynamically, so without the hint the
+ * browser only finds it once the whole entry graph has downloaded and run —
+ * and nothing renders until the strings are there (≈1 s lost on a slow phone).
+ */
+export function localeSplit(
+  localesDir: string,
+  { preloadLang }: { preloadLang?: string } = {},
+): Plugin {
   return {
     name: 'locale-split',
     enforce: 'pre',
+    transformIndexHtml: {
+      order: 'post',
+      handler(_html, ctx) {
+        if (!preloadLang || !ctx.bundle) return;
+        const facade = `${RESOLVED}${preloadLang}/base`;
+        const chunk = Object.values(ctx.bundle).find(
+          (c) => c.type === 'chunk' && c.facadeModuleId === facade,
+        );
+        if (!chunk) return;
+        return [
+          {
+            tag: 'link',
+            attrs: { rel: 'modulepreload', crossorigin: true, href: `/${chunk.fileName}` },
+            injectTo: 'head',
+          },
+        ];
+      },
+    },
     resolveId(id) {
       if (id.startsWith(PREFIX)) return RESOLVED + id.slice(PREFIX.length);
       return null;

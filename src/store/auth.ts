@@ -191,13 +191,23 @@ export const useAuthStore = create<AuthState>()(
         };
         const clearSession = (): void => {
           tokenStorage.clearTokens();
+          usePermissionStore.getState().reset();
           set({
             accessToken: null,
             refreshToken: null,
             user: null,
             isAuthenticated: false,
+            isAdmin: false,
             isLoading: false,
           });
+        };
+        // Профиль и права админа — два независимых запроса (оба только по
+        // токену): параллельно, а не друг за другом. Цепочка me → is-admin →
+        // permissions держала первый экран на лишний круг до сервера.
+        // checkAdminStatus сам ловит свои ошибки, так что ошибку отдаёт только getMe.
+        const loadUser = async (): Promise<User> => {
+          const [user] = await Promise.all([authApi.getMe(), get().checkAdminStatus()]);
+          return user;
         };
 
         let retryableFailure = false;
@@ -229,8 +239,7 @@ export const useAuthStore = create<AuthState>()(
             if (!isTokenValid(accessToken)) {
               const newToken = await tokenRefreshManager.refreshAccessToken();
               if (newToken) {
-                const user = await authApi.getMe();
-                await get().checkAdminStatus();
+                const user = await loadUser();
                 applySession(newToken, refreshToken, user);
               } else if (tokenRefreshManager.lastFailureWasTransport) {
                 // Backend unreachable, not a rejected token — keep the session
@@ -244,16 +253,14 @@ export const useAuthStore = create<AuthState>()(
             }
 
             try {
-              const user = await authApi.getMe();
-              await get().checkAdminStatus();
+              const user = await loadUser();
               applySession(accessToken, refreshToken, user);
             } catch (error) {
               if (isBackendUnavailableError(error)) throw error;
               const newToken = await tokenRefreshManager.refreshAccessToken();
               if (newToken) {
                 try {
-                  const user = await authApi.getMe();
-                  await get().checkAdminStatus();
+                  const user = await loadUser();
                   applySession(newToken, refreshToken, user);
                 } catch (error) {
                   if (isBackendUnavailableError(error)) throw error;

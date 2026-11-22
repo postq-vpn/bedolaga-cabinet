@@ -42,7 +42,8 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      localeSplit(path.resolve(import.meta.dirname, 'src/locales')),
+      // ru — единственный включённый язык (src/i18n.ts, ENABLED_LANGS).
+      localeSplit(path.resolve(import.meta.dirname, 'src/locales'), { preloadLang: 'ru' }),
       brandingHtml({
         name: env.VITE_APP_NAME ?? '',
         apiUrl: env.VITE_API_URL ?? '',

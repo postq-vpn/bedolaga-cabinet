@@ -1,5 +1,6 @@
 import { usePostqDesign } from './design/postqDesign';
 import { Suspense, useEffect } from 'react';
+import { useIsFetching } from '@tanstack/react-query';
 import { useAdminLocales } from './hooks/useAdminLocales';
 import { Routes, Route, Navigate, useLocation, useParams } from 'react-router';
 import { useAuthStore } from './store/auth';
@@ -164,25 +165,32 @@ const AdminInfoPageEditor = lazyWithRetry(() => import('./pages/AdminInfoPageEdi
 const AdminLegalPages = lazyWithRetry(() => import('./pages/AdminLegalPages'));
 
 /**
- * Bottom-bar screens load as soon as the browser is idle after sign-in: a tap
- * on a tab then renders at once, instead of freezing the old screen while the
- * chunk arrives and mounting the new one in the middle of the tab animation.
+ * Bottom-bar screens load ahead of the first tap: it then renders at once,
+ * instead of freezing the old screen while the chunk arrives and mounting the
+ * new one in the middle of the tab animation. Only once the current screen has
+ * its data (no queries in flight) and the browser is idle — started right after
+ * sign-in, the chunks took the bandwidth from the first screen's own requests.
  */
 let tabPagesPreloaded = false;
 function usePreloadTabPages(enabled: boolean) {
+  const fetching = useIsFetching();
   useEffect(() => {
-    if (!enabled || tabPagesPreloaded) return;
+    if (!enabled || tabPagesPreloaded || fetching > 0) return;
     const run = () => {
       tabPagesPreloaded = true;
       for (const page of [Balance, Support, Profile]) void page.preload();
     };
-    if (typeof window.requestIdleCallback === 'function') {
-      const handle = window.requestIdleCallback(run, { timeout: 3000 });
-      return () => window.cancelIdleCallback(handle);
-    }
-    const timer = window.setTimeout(run, 1500);
-    return () => window.clearTimeout(timer);
-  }, [enabled]);
+    let idle = 0;
+    const timer = window.setTimeout(() => {
+      if (typeof window.requestIdleCallback === 'function') {
+        idle = window.requestIdleCallback(run, { timeout: 2000 });
+      } else run();
+    }, 800);
+    return () => {
+      window.clearTimeout(timer);
+      if (idle) window.cancelIdleCallback(idle);
+    };
+  }, [enabled, fetching]);
 }
 
 function ProtectedRoute({
