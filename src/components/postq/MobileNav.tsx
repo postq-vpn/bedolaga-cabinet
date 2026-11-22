@@ -204,8 +204,21 @@ export function MobileTabBar({ hidden }: { hidden?: boolean }) {
   const isKeyboardOpen = useVirtualKeyboard();
   const unread = useUnreadTickets();
 
-  const isActive = (path: string) =>
-    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
+  // Навигация идёт в startTransition: адрес меняется, только когда новый экран
+  // отрисован. Подложка и иконка переезжают сразу по нажатию, а не ждут этого —
+  // иначе на телефоне пауза, и анимация совпадает с монтированием экрана.
+  const [tap, setTap] = useState<{ to: string; from: string } | null>(null);
+  // Экран сменился (дошло нажатие или вернулись иначе, по логотипу) — нажатие отработало.
+  const [seenPath, setSeenPath] = useState(location.pathname);
+  if (seenPath !== location.pathname) {
+    setSeenPath(location.pathname);
+    setTap(null);
+  }
+  const tappedTo = tap && tap.from === location.pathname ? tap.to : null;
+  const isActive = (path: string) => {
+    if (tappedTo) return path === tappedTo;
+    return path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
+  };
 
   const tabs = [
     { to: '/', label: t('nav.dashboard'), icon: 'home' as const },
@@ -252,9 +265,12 @@ export function MobileTabBar({ hidden }: { hidden?: boolean }) {
               to={tab.to}
               data-onboarding={tab.to === '/support' ? 'support' : undefined}
               aria-current={active ? 'page' : undefined}
-              onClick={() => haptic.impact('light')}
+              onClick={() => {
+                haptic.impact('light');
+                if (!active) setTap({ to: tab.to, from: location.pathname });
+              }}
               className={cn(
-                'relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[18px] transition-[color,transform] duration-200 active:scale-[0.92]',
+                'relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[18px] transition-transform duration-200 active:scale-[0.92]',
                 active
                   ? 'text-[var(--rd-heading)]'
                   : 'text-[var(--rd-body)] hover:text-[var(--rd-heading)]',

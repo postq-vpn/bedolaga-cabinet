@@ -1,5 +1,5 @@
 import { usePostqDesign } from './design/postqDesign';
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useAdminLocales } from './hooks/useAdminLocales';
 import { Routes, Route, Navigate, useLocation, useParams } from 'react-router';
 import { useAuthStore } from './store/auth';
@@ -163,6 +163,28 @@ const AdminInfoPages = lazyWithRetry(() => import('./pages/AdminInfoPages'));
 const AdminInfoPageEditor = lazyWithRetry(() => import('./pages/AdminInfoPageEditor'));
 const AdminLegalPages = lazyWithRetry(() => import('./pages/AdminLegalPages'));
 
+/**
+ * Bottom-bar screens load as soon as the browser is idle after sign-in: a tap
+ * on a tab then renders at once, instead of freezing the old screen while the
+ * chunk arrives and mounting the new one in the middle of the tab animation.
+ */
+let tabPagesPreloaded = false;
+function usePreloadTabPages(enabled: boolean) {
+  useEffect(() => {
+    if (!enabled || tabPagesPreloaded) return;
+    const run = () => {
+      tabPagesPreloaded = true;
+      for (const page of [Balance, Support, Profile]) void page.preload();
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(run, { timeout: 3000 });
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timer = window.setTimeout(run, 1500);
+    return () => window.clearTimeout(timer);
+  }, [enabled]);
+}
+
 function ProtectedRoute({
   children,
   withLayout = true,
@@ -173,6 +195,7 @@ function ProtectedRoute({
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLoading = useAuthStore((state) => state.isLoading);
   const location = useLocation();
+  usePreloadTabPages(isAuthenticated && !isLoading);
 
   if (isLoading) {
     return <PageLoader variant="dark" />;

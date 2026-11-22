@@ -21,10 +21,14 @@ export function designSwitch<T extends ComponentType<any>>(
   loadLegacy: () => Promise<{ default: ComponentType<ComponentProps<T>> }>,
   name: string,
   { page = false }: { page?: boolean } = {},
-): (props: ComponentProps<T>) => JSX.Element {
+): ((props: ComponentProps<T>) => JSX.Element) & { preload: () => Promise<void> } {
   type P = ComponentProps<T>;
-  const Postq = lazyWithRetry(loadPostq) as unknown as ComponentType<P>;
-  const Legacy = lazyWithRetry(loadLegacy) as unknown as ComponentType<P>;
+  const Postq = lazyWithRetry(loadPostq) as unknown as ComponentType<P> & {
+    preload: () => Promise<void>;
+  };
+  const Legacy = lazyWithRetry(loadLegacy) as unknown as ComponentType<P> & {
+    preload: () => Promise<void>;
+  };
   void (isPostqDesign() ? loadPostq() : loadLegacy()).catch(() => {});
 
   const fallback: ReactNode = page ? <PageLoader variant="dark" /> : null;
@@ -37,5 +41,9 @@ export function designSwitch<T extends ComponentType<any>>(
     );
   }
   Switched.displayName = name;
-  return Switched;
+  // The version this browser shows: settling it keeps its Suspense from
+  // flashing the page loader on the first visit.
+  return Object.assign(Switched, {
+    preload: () => (isPostqDesign() ? Postq : Legacy).preload(),
+  });
 }

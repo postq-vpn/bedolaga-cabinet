@@ -833,6 +833,8 @@ html.postq.dark .rd-liquid-glass__active {
   }
 }
 .rd-liquid-glass__slider {
+  /* Свой слой заранее: переезд целиком на compositor, без перерисовки панели. */
+  will-change: transform;
   transition:
     transform 0.45s cubic-bezier(0.32, 0.72, 0, 1),
     opacity 0.2s ease;
@@ -846,6 +848,7 @@ html.postq.dark .rd-liquid-glass__active {
 }
 .rd-tab-icon > * {
   grid-area: 1 / 1;
+  will-change: transform, opacity;
   transition:
     opacity 0.45s cubic-bezier(0.32, 0.72, 0, 1),
     transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
