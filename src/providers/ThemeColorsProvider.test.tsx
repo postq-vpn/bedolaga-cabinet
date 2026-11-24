@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * Цвета клиента Telegram вокруг страницы.
@@ -45,9 +45,41 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   isDark = true;
+  globalThis.__POSTQ_DESIGN_OVERRIDE__ = undefined;
 });
 
-describe('ThemeColorsProvider — цвета клиента Telegram', () => {
+describe('ThemeColorsProvider — postq', () => {
+  // Шапка кабинета прозрачная: под ней виден цвет клиента. Операторская
+  // палитра с бэкенда давала там фиолетовую подложку над серой страницей.
+  it('в тёмной теме шапка, панель и фон клиента = --rd-page', () => {
+    render(
+      <ThemeColorsProvider>
+        <span />
+      </ThemeColorsProvider>,
+    );
+    expect(theme.setHeaderColor).toHaveBeenLastCalledWith('#1a1a1c');
+    expect(theme.setBottomBarColor).toHaveBeenLastCalledWith('#1a1a1c');
+    expect(theme.setBackgroundColor).toHaveBeenLastCalledWith('#1a1a1c');
+  });
+
+  it('в светлой теме — светлый --rd-page', () => {
+    isDark = false;
+    render(
+      <ThemeColorsProvider>
+        <span />
+      </ThemeColorsProvider>,
+    );
+    expect(theme.setHeaderColor).toHaveBeenLastCalledWith('#f8f8f8');
+    expect(theme.setBottomBarColor).toHaveBeenLastCalledWith('#f8f8f8');
+    expect(theme.setBackgroundColor).toHaveBeenLastCalledWith('#f8f8f8');
+  });
+});
+
+describe('ThemeColorsProvider — цвета клиента Telegram (legacy)', () => {
+  beforeEach(() => {
+    globalThis.__POSTQ_DESIGN_OVERRIDE__ = false;
+  });
+
   it('в тёмной теме фон клиента = тёмный фон страницы, шапка = поверхность', () => {
     render(
       <ThemeColorsProvider>
